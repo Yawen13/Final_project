@@ -228,7 +228,7 @@ export default function Login() {
     </div>
 
     {/*  1：Mia */}
-    <div className="w-80 rounded-2xl bg-white/100 backdrop-blur-md p-3 shadow-xl shadow-purple-900/5 transition-all hover:-translate-y-1 hover:shadow-2xl -rotate-3 -translate-x-6 border border-white/60">
+    <div className="w-80 rounded-2xl bg-white/100 backdrop-blur-md p-3 shadow-xl shadow-purple-900/5 transition-all hover:-translate-y-1 hover:shadow-2xl -rotate-3 -translate-x-6 border border-gray-100">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-semibold">
@@ -247,7 +247,7 @@ export default function Login() {
     </div>
 
     {/*  2：Leo */}
-    <div className="w-80 rounded-2xl bg-white/100 backdrop-blur-md p-3 shadow-xl shadow-purple-900/5 transition-all hover:-translate-y-1 hover:shadow-2xl rotate-2 translate-x-8 border border-white/80">
+    <div className="w-80 rounded-2xl bg-white/100 backdrop-blur-md p-3 shadow-xl shadow-purple-900/5 transition-all hover:-translate-y-1 hover:shadow-2xl rotate-2 translate-x-8 border border-gray-100">
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-semibold">
@@ -266,7 +266,7 @@ export default function Login() {
     </div>
 
     {/* 3：Campus */}
-    <div className="w-72 rounded-2xl bg-white/100 backdrop-blur-sm p-4 shadow-lg shadow-purple-900/5 transition-all hover:-translate-y-1 -rotate-1 -translate-x-12 border border-white/40">
+    <div className="w-72 rounded-2xl bg-white/100 backdrop-blur-sm p-4 shadow-lg shadow-purple-900/5 transition-all hover:-translate-y-1 -rotate-1 -translate-x-12 border border-gray-100">
       <div className="flex items-center justify-between gap-3 mb-1">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-semibold">

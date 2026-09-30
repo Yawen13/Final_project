@@ -57,3 +57,4 @@ Bash
 cd backend
 npm install
 npm start
+npm start

@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
 
-//register
+const { db, admin } = require('../db'); 
+
+// 1. Register 
 router.post('/auth/register', async (req, res) => {
   const { username, displayName, email, password, bio } = req.body;
   if (!username || !displayName || !email || !password) {
@@ -10,13 +11,26 @@ router.post('/auth/register', async (req, res) => {
   }
 
   try {
-    const [result] = await db.query(
-      'INSERT INTO users (username, display_name, email, password, bio) VALUES (?, ?, ?, ?, ?)',
-      [username, displayName, email, password, bio || '']
-    );
+    const usersRef = db.collection('users');
+    
+    // check if username already exists
+    const checkSnapshot = await usersRef.where('username', '==', username).get();
+    if (!checkSnapshot.empty) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    const newUser = {
+      username,
+      display_name: displayName,
+      email,
+      password, 
+      bio: bio || '',
+      created_at: admin.firestore.FieldValue.serverTimestamp() }
+
+    const docRef = await usersRef.add(newUser);
     res.status(201).json({
       message: 'Registration successful',
-      userId: result.insertId,
+      userId: docRef.id,
       username,
       displayName
     });
@@ -25,20 +39,25 @@ router.post('/auth/register', async (req, res) => {
   }
 });
 
-// login
+// 2. Login 
 router.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const [rows] = await db.query(
-      'SELECT id, username, display_name, bio, created_at FROM users WHERE username = ? AND password = ?',
-      [username, password]
-    );
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef
+      .where('username', '==', username)
+      .where('password', '==', password)
+      .get();
 
-    if (rows.length === 0) {
+    if (snapshot.empty) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    const user = rows[0];
+    let user;
+    snapshot.forEach(doc => {
+      user = { id: doc.id, ...doc.data() };
+    });
+
     res.json({
       userId: user.id,
       username: user.username,
@@ -51,20 +70,22 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-// Get user by username
+// 3. Get user by username 
 router.get('/users/:username', async (req, res) => {
   const { username } = req.params;
   try {
-    const [rows] = await db.query(
-      'SELECT id, username, display_name, bio, created_at FROM users WHERE username = ?',
-      [username]
-    );
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef.where('username', '==', username).get();
 
-    if (rows.length === 0) {
+    if (snapshot.empty) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const user = rows[0];
+    let user;
+    snapshot.forEach(doc => {
+      user = { id: doc.id, ...doc.data() };
+    });
+
     res.json({
       userId: user.id,
       username: user.username,

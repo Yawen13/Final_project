@@ -1,10 +1,12 @@
-const mysql = require('mysql2');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const admin = require('firebase-admin'); // 
+const serviceAccount = require('./serviceAccountKey.json');
 
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'unfinished_db' // Replace with your actual database name
+
+initializeApp({
+  credential: cert(serviceAccount)
 });
 
-module.exports = pool.promise();
+const db = getFirestore();
+module.exports = { db, admin };

@@ -8,11 +8,34 @@ import commentIcon from '../assets/comment.png';
 import bigULogo from '../assets/Big_U_logo.png';
 import { useNavigate } from 'react-router-dom';
 
+function SceneryIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="M4 17l4.5-4.5a2 2 0 012.8 0L16 17" />
+      <path d="M14 15.5l1.5-1.5a2 2 0 012.8 0L20 15.5" />
+    </svg>
+  );
+}
+
 export default function Login() {
 
   const navigate = useNavigate();
 
   const [showComingSoon, setShowComingSoon] = useState(false);
+
+  // Scenic campus photo, cross-faded in over the plain white background
+  const [showScenery, setShowScenery] = useState(false);
 
   // Status: Login mode (isSignUp is false for login, true for creating a new account)
   const [isSignUp, setIsSignUp] = useState(false);
@@ -56,20 +79,46 @@ export default function Login() {
       alert(`Account created for: ${account}`);
       setIsSignUp(false); 
     } else {
-      //  fake token  Fakehome
+      // Fake token until the auth API lands
       localStorage.setItem('userToken', 'fake-login-token');
       navigate('/home'); 
     }
   };
 
   return (
+  <div className="relative flex min-h-screen w-full overflow-hidden bg-white">
 
-    
-//     <div 
-//   className="relative flex min-h-screen w-full bg-cover bg-center bg-no-repeat"
-//   style={{ backgroundImage: `url(${loginBg})` }}
-// >
-  <div className="relative flex min-h-screen w-full bg-white">
+      {/* Scenic background, cross-faded in behind everything when toggled on */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-out motion-reduce:transition-none ${
+          showScenery ? 'scale-100 opacity-100' : 'scale-105 opacity-0'
+        }`}
+        style={{ backgroundImage: `url(${loginBg})` }}
+      />
+
+      {/* Soft white wash so the form column stays readable over the photo */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-white via-white/85 to-transparent transition-opacity duration-1000 ease-out motion-reduce:transition-none md:w-3/5 ${
+          showScenery ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+
+      {/* Background toggle */}
+      <button
+        type="button"
+        onClick={() => setShowScenery((on) => !on)}
+        aria-pressed={showScenery}
+        title={showScenery ? 'Switch to plain background' : 'Switch to campus background'}
+        className={`absolute right-5 top-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition-all duration-300 hover:scale-105 active:scale-95 ${
+          showScenery
+            ? 'border-[#635BFF]/30 bg-white/80 text-[#635BFF] shadow-md'
+            : 'border-gray-200 bg-white/70 text-gray-400 shadow-sm hover:text-[#635BFF]'
+        }`}
+      >
+        <SceneryIcon className="h-5 w-5" />
+      </button>
 
       {/* Coming Soon */}
   {showComingSoon && (
@@ -93,7 +142,8 @@ export default function Login() {
 )}
 
       {/*  MAIN PAGE */}
-      <div className="flex w-full flex-col justify-between p-5 md:w-1/2 lg:p-8">
+      {/* relative z-10 so the form paints above the absolutely-positioned background layers */}
+      <div className="relative z-10 flex w-full flex-col justify-between p-5 md:w-1/2 lg:p-8">
 
        <div className="flex justify-start pt-0 gap-2">
          <img src={logoImg} alt="Unfinished Logo" className="h-7 w-auto" />
@@ -211,7 +261,7 @@ export default function Login() {
       </div>
 
 
-<div className="relative hidden w-1/2 flex-col items-center justify-between overflow-hidden bg-white p-8 select-none md:flex">
+<div className="relative z-10 hidden w-1/2 flex-col items-center justify-between overflow-hidden p-8 select-none md:flex">
 
   <img 
     src={bigULogo} 

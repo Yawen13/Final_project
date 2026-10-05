@@ -1,0 +1,101 @@
+/* Motion and browser chrome for the Inkling surface.
+   Everything here is scoped under .inkling / .inkling-* so none of it
+   reaches the rest of the app. */
+
+.inkling {
+  caret-color: #635bff;
+}
+
+.inkling ::selection {
+  background: color-mix(in oklab, #635bff 20%, transparent);
+}
+
+/* The thread and the composer carry their own scrollbar: quiet at rest,
+   brand-tinted on hover. Overriding ::-webkit-scrollbar also drops the native
+   arrow buttons, which is most of what made the composer look wrong. */
+.inkling-thread,
+.inkling-composer {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+.inkling-thread::-webkit-scrollbar,
+.inkling-composer::-webkit-scrollbar {
+  width: 8px;
+}
+.inkling-thread::-webkit-scrollbar-track,
+.inkling-composer::-webkit-scrollbar-track {
+  background: transparent;
+}
+.inkling-thread::-webkit-scrollbar-thumb,
+.inkling-composer::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 9999px;
+}
+.inkling-thread::-webkit-scrollbar-thumb:hover,
+.inkling-composer::-webkit-scrollbar-thumb:hover {
+  background: #c7c9ff;
+}
+
+/* The focal moment: Inkling's reply settles like ink onto paper. */
+@keyframes ink-settle {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+.inkling-settle {
+  animation: ink-settle 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Your own line lands at once — an acknowledgement, not a performance. */
+@keyframes ink-post {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.inkling-post {
+  animation: ink-post 0.18s ease-out both;
+}
+
+/* Waiting: the mark draws itself in and back out, rather than three stock dots. */
+@keyframes ink-draw {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  55% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -50;
+  }
+}
+.inkling-draw {
+  stroke-dasharray: 50;
+  animation: ink-draw 1.5s ease-in-out infinite;
+}
+
+/* Reduced motion keeps the meaning (something is happening, something arrived)
+   and drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .inkling-settle {
+    animation: ink-post 0.2s ease-out both;
+  }
+  .inkling-post {
+    animation: none;
+  }
+  .inkling-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

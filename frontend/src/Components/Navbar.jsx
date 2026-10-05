@@ -1,14 +1,21 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/U_logo.png';
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   function linkClass(path) {
     return location.pathname === path
       ? 'text-sm font-medium text-gray-900'
       : 'text-sm font-medium text-gray-500 hover:text-gray-900';
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('userToken');
+    // replace: the logged-in page shouldn't come back on the browser Back button
+    navigate('/', { replace: true });
   }
 
   return (
@@ -30,9 +37,13 @@ export default function Navbar() {
         <Link to="/explore" className={linkClass('/explore')}>
           Explore
         </Link>
-        <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-sm font-medium text-gray-500 hover:text-gray-900"
+        >
           Sign out
-        </Link>
+        </button>
         <div className="h-9 w-9 rounded-full bg-gray-200" />
       </nav>
     </header>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import logoImg from '../assets/U_logo.png';
+import Navbar from '../Components/Navbar';
 
 const PLACEHOLDER_CONVERSATIONS = [
   {
@@ -79,30 +78,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-white">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur">
-        <img src={logoImg} alt="Unfinished Logo" className="h-8 w-auto" />
-
-        <div className="hidden w-full max-w-sm md:block">
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
-          />
-        </div>
-
-        <nav className="flex items-center gap-5">
-          <Link to="/" className="text-sm font-medium text-gray-900">
-            Home
-          </Link>
-          <Link to="/explore" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-            Explore
-          </Link>
-          <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-            Sign out
-          </Link>
-          <div className="h-9 w-9 rounded-full bg-gray-200" />
-        </nav>
-      </header>
+      <Navbar />
 
       <main className="mx-auto flex w-full max-w-2xl flex-col">
         <form onSubmit={handlePost} className="border-b border-gray-100 px-4 py-4">

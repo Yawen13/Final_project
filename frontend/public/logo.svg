@@ -1,0 +1,20 @@
+<svg width="420" height="240" viewBox="0 0 420 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .brand { fill: #1D1F23; }
+    .orbit { stroke: #1D1F23; stroke-width: 8; stroke-linecap: round; fill: none; }
+    .star { fill: #1D1F23; }
+    .small { font: 700 54px 'Segoe UI', Arial, sans-serif; letter-spacing: -2px; }
+    .tiny { font: 700 18px 'Segoe UI', Arial, sans-serif; letter-spacing: 4px; }
+  </style>
+
+  <g transform="translate(10,8)">
+    <path class="brand" d="M82 26H132V106C132 146 110 170 82 170C54 170 32 146 32 106V26H82V104C82 118 84 128 94 136C103 143 111 143 120 136C129 128 132 118 132 104V26H173V106C173 160 142 195 82 195C22 195 -9 160 -9 106V26H82Z"/>
+    <path class="orbit" d="M18 132C45 164 93 186 141 183C193 180 245 157 283 111C326 60 377 55 430 88"/>
+    <path class="star" d="M350 46L354 58L366 62L354 66L350 78L346 66L334 62L346 58L350 46Z"/>
+    <path class="brand" d="M167 42H218V118C218 133 212 143 201 151C191 158 177 162 160 162H143V116H155C163 116 170 114 173 111C176 108 178 103 178 96V42H167Z"/>
+    <path class="brand" d="M266 42H333V90H285V116H326V152H266V42Z"/>
+  </g>
+
+  <text x="92" y="240" class="small brand">unfinished</text>
+  <text x="178" y="268" class="tiny brand">BETTER TOGETHER</text>
+</svg>

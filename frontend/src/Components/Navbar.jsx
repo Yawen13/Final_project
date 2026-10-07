@@ -1,9 +1,13 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/U_logo.png';
+import InklingMark from './InklingMark';
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   function linkClass(path) {
     return location.pathname === path
@@ -11,30 +15,99 @@ export default function Navbar() {
       : 'text-sm font-medium text-gray-500 hover:text-gray-900';
   }
 
+  // Dismiss the account menu on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleMouseDown(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  function handleLogout() {
+    setMenuOpen(false);
+    localStorage.removeItem('userToken');
+    // replace: the logged-in page shouldn't come back on the browser Back button
+    navigate('/', { replace: true });
+  }
+
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur">
-      <img src={logoImg} alt="Unfinished Logo" className="h-8 w-auto" />
+      <img src={logoImg} alt="Unfinished Logo" className="h-8 w-auto shrink-0" />
 
-      <div className="hidden w-full max-w-sm md:block">
-        <input
-          type="text"
-          placeholder="Search"
-          className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
-        />
-      </div>
-
-      <nav className="flex items-center gap-5">
+      {/* Kept out of the flex flow so the links land in the true center of the bar */}
+      <nav className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center gap-6">
         <Link to="/home" className={linkClass('/home')}>
           Home
         </Link>
         <Link to="/explore" className={linkClass('/explore')}>
           Explore
         </Link>
-        <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900">
-          Sign out
+        <Link to="/inkling" className={`${linkClass('/inkling')} flex items-center gap-1.5`}>
+          <InklingMark className="h-4 w-4" strokeWidth={2.6} />
+          Inkling
         </Link>
-        <div className="h-9 w-9 rounded-full bg-gray-200" />
       </nav>
+
+      <div className="flex items-center gap-4">
+        <div className="hidden w-56 md:block lg:w-72">
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+          />
+        </div>
+
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label="Account menu"
+            className="block h-9 w-9 rounded-full bg-gray-200 hover:ring-2 hover:ring-[#635BFF]/30"
+          />
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg"
+            >
+              <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
+                  Y
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-gray-900">You</p>
+                  <p className="truncate text-xs text-gray-400">@you</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleLogout}
+                className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </header>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import Navbar from 'src/components/Navbar';
+import Navbar from '../Components/Navbar';
 
 const TRENDING_TAGS = ['#shortstories', '#worldbuilding', '#poetry', '#screenwriting', '#lyrics'];
 

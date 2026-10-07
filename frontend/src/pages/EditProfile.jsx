@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+// Edits profile details and the avatar, then returns the updated profile to the app.
 export default function EditProfilePage({ profile, onSave, onCancel }) {
   const [form, setForm] = useState(profile);
 

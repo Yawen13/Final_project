@@ -29,7 +29,8 @@ function CalendarIcon({ className = 'h-4 w-4' }) {
   );
 }
 
-export default function ProfileScreen({ profile, posts, onEdit, onCreatePost, onDeletePost, onEditPost }) {
+// Shows the user's profile and supports creating, editing, deleting, and bookmarking posts.
+export default function ProfileScreen({ profile, posts, bookmarks, onNavigate, onEdit, onCreatePost, onDeletePost, onEditPost, onSaveBookmark }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [draftText, setDraftText] = useState('');
@@ -77,7 +78,7 @@ export default function ProfileScreen({ profile, posts, onEdit, onCreatePost, on
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f3f2f5] text-slate-900">
-      <TopNav activeItem="Profile" onCreatePost={() => setIsComposerOpen(true)} />
+      <TopNav activeItem="Profile" profile={profile} onNavigate={onNavigate} onCreatePost={() => setIsComposerOpen(true)} />
 
       <div className="mx-auto mt-8 box-border w-full max-w-[760px]">
         <div className="overflow-hidden rounded-t-[28px] border border-violet-100 bg-[linear-gradient(135deg,_#f3eaff_0%,_#f7effa_52%,_#faeeee_100%)] shadow-[0_18px_40px_rgba(109,40,217,0.08)]">
@@ -192,7 +193,18 @@ export default function ProfileScreen({ profile, posts, onEdit, onCreatePost, on
                         </button>
 
                         {openMenuId === post.id && (
-                          <div className="absolute right-0 z-10 mt-2 w-28 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                          <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSaveBookmark(post);
+                                setOpenMenuId(null);
+                              }}
+                              disabled={bookmarks.some((bookmark) => bookmark.id === `profile-${post.id}`)}
+                              className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-default disabled:text-violet-700"
+                            >
+                              {bookmarks.some((bookmark) => bookmark.id === `profile-${post.id}`) ? 'Saved to bookmarks' : 'Save to bookmarks'}
+                            </button>
                             <button
                               type="button"
                               onClick={() => startEdit(post)}

@@ -33,10 +33,11 @@ function MessageIcon({ className = 'h-4 w-4' }) {
   );
 }
 
-function SparkIcon({ className = 'h-4 w-4' }) {
+function AssistantIcon({ className = 'h-4 w-4' }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d="m12 2 1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="4" y="7" width="16" height="13" rx="4" />
+      <path d="M12 4v3M9 12h.01M15 12h.01M9 16h6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -76,79 +77,55 @@ function SearchIcon({ className = 'h-4 w-4' }) {
   );
 }
 
-function PencilIcon({ className = 'h-4 w-4' }) {
+function UserIcon({ className = 'h-4 w-4' }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d="M12 20h9" strokeLinecap="round" />
-      <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M5 20a7 7 0 0 1 14 0" strokeLinecap="round" />
     </svg>
   );
 }
 
-function MoreIcon({ className = 'h-4 w-4' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <circle cx="5" cy="12" r="1.8" />
-      <circle cx="12" cy="12" r="1.8" />
-      <circle cx="19" cy="12" r="1.8" />
-    </svg>
-  );
-}
-
-function LocationIcon({ className = 'h-4 w-4' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11Z" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="10" r="2.3" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className = 'h-4 w-4' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <rect x="3" y="5" width="18" height="16" rx="2.5" />
-      <path d="M8 3v4M16 3v4M3 10h18" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export default function TopNav({ activeItem = 'Profile', onCreatePost }) {
+// Displays shared page navigation and the current user's account avatar.
+export default function TopNav({ activeItem = 'Profile', onCreatePost, onNavigate, profile }) {
   const menuItems = [
     { label: 'Home', href: '#home', icon: HomeIcon },
     { label: 'Explore', href: '#explore', icon: CompassIcon },
     { label: 'Notifications', href: '#notifications', icon: BellIcon },
     { label: 'Messages', href: '#messages', icon: MessageIcon },
-    { label: 'Assistant', href: '#assistant', icon: SparkIcon },
+    { label: 'Assistant', href: '#assistant', icon: AssistantIcon },
     { label: 'Bookmarks', href: '#bookmarks', icon: BookmarkIcon },
     { label: 'Communities', href: '#communities', icon: UsersIcon },
     { label: 'Premium', href: '#premium', icon: StarIcon },
-    { label: 'Profile', href: '#profile', icon: PencilIcon },
+    { label: 'Profile', href: '#profile', icon: UserIcon },
   ];
 
   return (
-    <header className="mx-auto box-border flex w-full max-w-[1280px] items-center justify-between bg-white px-6 py-3 shadow-sm ring-1 ring-slate-100/90">
-      <div className="min-w-[88px]" aria-hidden="true" />
-
-      <nav className="hidden items-center gap-1 text-[12px] text-slate-600 md:flex">
+    <header className="sticky top-0 z-30 mx-auto box-border flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100/90 sm:px-6 md:flex-nowrap md:gap-4">
+      <nav aria-label="Main navigation" className="order-2 flex w-full items-center justify-between gap-0 overflow-visible text-[12px] text-slate-600 md:order-1 md:min-w-0 md:flex-1 md:justify-center md:gap-1 md:overflow-x-auto">
         {menuItems.map(({ label, href, icon: Icon }) => (
           <a
             key={label}
             href={href}
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigate?.(label);
+            }}
             aria-current={label === activeItem ? 'page' : undefined}
-            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-2 transition ${
+            aria-label={label}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-1.5 py-2 transition md:gap-2 md:px-2.5 ${
               label === activeItem
-                ? 'bg-[#F1F3F9] text-slate-900 shadow-sm'
+                ? 'bg-[#F1ECFF] text-[#5B45B5] shadow-sm'
                 : 'hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Icon className="h-3.5 w-3.5" />
-            <span>{label}</span>
+            <Icon className="h-4 w-4" />
+            <span className="hidden lg:inline">{label}</span>
           </a>
         ))}
       </nav>
 
-      <div className="flex items-center gap-3">
+      <div className="order-1 ml-auto flex shrink-0 items-center gap-2 sm:gap-3 md:order-2 md:ml-0">
         <button
           type="button"
           className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6] text-slate-700 transition hover:bg-slate-200"
@@ -163,9 +140,18 @@ export default function TopNav({ activeItem = 'Profile', onCreatePost }) {
         >
           Post
         </button>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4E4C61] text-[12px] font-bold text-white shadow-sm">
-          MK
-        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('Profile')}
+          aria-label={`Your account: ${profile?.name || 'Profile'}`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#4E4C61] text-[12px] font-bold text-white shadow-sm"
+        >
+          {profile?.avatar ? (
+            <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            profile?.name?.slice(0, 2).toUpperCase() || 'JD'
+          )}
+        </button>
       </div>
     </header>
   );

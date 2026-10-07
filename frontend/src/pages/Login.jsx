@@ -4,6 +4,7 @@ import googleIcon from '../assets/google.png';
 import phoneIcon from '../assets/mobilephone.png';
 import logoImg from '../assets/U_logo.png';
 
+// Renders the sign-in screen with phone, Google, Apple, and email options.
 export default function Login() {
     return (
       <div className="flex min-h-screen w-full bg-white">

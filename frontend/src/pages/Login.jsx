@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import appleIcon from '../assets/apple.png';
 import googleIcon from '../assets/google.png';
 import phoneIcon from '../assets/mobilephone.png';
@@ -7,6 +7,7 @@ import loginBg from '../assets/login_background.png';
 import commentIcon from '../assets/comment.png';
 import bigULogo from '../assets/Big_U_logo.png';
 import { useNavigate } from 'react-router-dom';
+import { login, register, saveSession } from '../api/auth';
 
 function SceneryIcon({ className }) {
   return (
@@ -43,7 +44,12 @@ export default function Login() {
   //Status: Form input data
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // True while the request is in flight, so the button can't be double-fired
+  const [busy, setBusy] = useState(false);
 
   // Click the third-party login pop-up
   const handleThirdPartyClick = () => {
@@ -56,32 +62,47 @@ export default function Login() {
     setErrorMsg('');
     setAccount('');
     setPassword('');
+    setDisplayName('');
+    setEmail('');
   };
 
-  // Submit form (login/register)
-  const handleSubmit = (e) => {
+  // Submit form (login/register) — POSTs to the backend through src/api/auth.js
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (busy) return;
+
     if (!account.trim() || !password.trim()) {
       setErrorMsg('Please fill in both account and password');
       return;
     }
+
+    // The register endpoint needs these two; the login form doesn't ask for them
+    if (isSignUp && (!displayName.trim() || !email.trim())) {
+      setErrorMsg('Please add a display name and an email to create your account');
+      return;
+    }
+
     setErrorMsg('');
+    setBusy(true);
 
-    // if (isSignUp) {
-    //   alert(`Creating account for: ${account}`);
-    //   // TODO: API (Register Endpoint)
-    // } else {
-    //   alert(`Logging in with: ${account}`);
-    //   // TODO: API (Login Endpoint)
-    // }
+    try {
+      const session = isSignUp
+        ? await register({
+            username: account.trim(),
+            displayName: displayName.trim(),
+            email: email.trim(),
+            password,
+          })
+        : await login(account.trim(), password);
 
-    if (isSignUp) {
-      alert(`Account created for: ${account}`);
-      setIsSignUp(false); 
-    } else {
-      // Fake token until the auth API lands
-      localStorage.setItem('userToken', 'fake-login-token');
-      navigate('/home'); 
+      // No token from this API — the session is the user record it returned
+      saveSession(session);
+      navigate('/home');
+    } catch (error) {
+      setErrorMsg(error.message || 'Something went wrong. Please try again.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -197,15 +218,40 @@ export default function Login() {
 
           {/* Username and Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Only the register endpoint asks for these two */}
+            {isSignUp && (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Display name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full rounded-full border border-gray-300 px-5 py-3 text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+            )}
+
             <div>
               <input
                 type="text"
-                placeholder="Email or username"
+                placeholder={isSignUp ? "Username" : "Email or username"}
                 value={account}
                 onChange={(e) => setAccount(e.target.value)}
                 className="w-full rounded-full border border-gray-300 px-5 py-3 text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
               />
             </div>
+
+            {isSignUp && (
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-full border border-gray-300 px-5 py-3 text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+            )}
 
             <div>
               <input
@@ -218,11 +264,14 @@ export default function Login() {
               {errorMsg && <p className="mt-1 text-xs text-red-500 pl-4">{errorMsg}</p>}
             </div>
 
-            <button 
+            <button
               type="submit"
-              className="w-full rounded-full bg-[#635BFF] py-3 font-medium text-white transition-colors hover:bg-[#5249ea]"
+              disabled={busy}
+              className="w-full rounded-full bg-[#635BFF] py-3 font-medium text-white transition-colors hover:bg-[#5249ea] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSignUp ? "Create account" : "Sign in"}
+              {busy
+                ? (isSignUp ? "Creating account…" : "Signing in…")
+                : (isSignUp ? "Create account" : "Sign in")}
             </button>
           </form>
 

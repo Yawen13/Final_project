@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNav from '../Components/TopNav';
+import Navbar from '../Components/Navbar';
 
 const plans = [
   { name: 'Basic', price: '$3', features: ['Edit posts', 'Bookmark folders', 'Fewer ads'] },
@@ -8,12 +8,12 @@ const plans = [
 ];
 
 // Shows subscription tiers and lets users select a plan.
-export default function PremiumPage({ onNavigate, onCreatePost, profile }) {
+export default function PremiumPage() {
   const [selectedPlan, setSelectedPlan] = useState('');
 
   return (
     <div className="min-h-screen bg-[#f5f4fa] text-slate-900">
-      <TopNav activeItem="Premium" profile={profile} onNavigate={onNavigate} onCreatePost={onCreatePost} />
+      <Navbar />
 
       <main className="mx-auto w-full max-w-[900px] px-4 pb-12 pt-12 sm:px-6 sm:pt-16">
         <div className="mx-auto mb-9 max-w-xl text-center">

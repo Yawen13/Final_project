@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/U_logo.png';
 import InklingMark from './InklingMark';
@@ -13,6 +13,12 @@ export default function Navbar() {
     return location.pathname === path
       ? 'text-sm font-medium text-gray-900'
       : 'text-sm font-medium text-gray-500 hover:text-gray-900';
+  }
+
+  function menuItemClass(path) {
+    return location.pathname === path
+      ? 'block px-4 py-2.5 text-sm font-medium text-[#635BFF] hover:bg-gray-50'
+      : 'block px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50';
   }
 
   // Dismiss the account menu on outside click or Escape
@@ -49,7 +55,7 @@ export default function Navbar() {
       <img src={logoImg} alt="Unfinished Logo" className="h-8 w-auto shrink-0" />
 
       {/* Kept out of the flex flow so the links land in the true center of the bar */}
-      <nav className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center gap-6">
+      <nav className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center gap-5">
         <Link to="/home" className={linkClass('/home')}>
           Home
         </Link>
@@ -60,10 +66,18 @@ export default function Navbar() {
           <InklingMark className="h-4 w-4" strokeWidth={2.6} />
           Inkling
         </Link>
+        <Link to="/community" className={linkClass('/community')}>
+          Communities
+        </Link>
+        <Link to="/premium" className={linkClass('/premium')}>
+          Premium
+        </Link>
       </nav>
 
       <div className="flex items-center gap-4">
-        <div className="hidden w-56 md:block lg:w-72">
+        {/* Held back to lg: the centred links need the room before that, and the
+            field is inert anyway */}
+        <div className="hidden lg:block lg:w-56">
           <input
             type="text"
             placeholder="Search"
@@ -96,14 +110,35 @@ export default function Navbar() {
                 </div>
               </div>
 
-              <button
-                type="button"
+              {/* The personal pages live here rather than in the centre of the
+                  bar, so the links there stay to five */}
+              <Link
+                to="/profile"
                 role="menuitem"
-                onClick={handleLogout}
-                className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => setMenuOpen(false)}
+                className={menuItemClass('/profile')}
               >
-                Sign out
-              </button>
+                Profile
+              </Link>
+              <Link
+                to="/bookmark"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+                className={menuItemClass('/bookmark')}
+              >
+                Bookmarks
+              </Link>
+
+              <div className="border-t border-gray-100">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Sign out
+                </button>
+              </div>
             </div>
           )}
         </div>

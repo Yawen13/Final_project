@@ -1,10 +1,10 @@
-import TopNav from '../Components/TopNav';
+import Navbar from '../Components/Navbar';
 
 // Lists saved posts and lets the user remove them from bookmarks.
-export default function BookmarkPage({ bookmarks, onRemoveBookmark, onNavigate, onCreatePost, profile }) {
+export default function BookmarkPage({ bookmarks, onRemoveBookmark }) {
   return (
     <div className="min-h-screen bg-[#f5f4fa] text-slate-900">
-      <TopNav activeItem="Bookmarks" profile={profile} onNavigate={onNavigate} onCreatePost={onCreatePost} />
+      <Navbar />
 
       <main className="mx-auto w-full max-w-[640px] px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
         <div className="mb-5">

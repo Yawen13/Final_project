@@ -9,19 +9,7 @@ import EditProfilePage from './pages/EditProfile';
 import BookmarkPage from './pages/Bookmark';
 import CommunityPage from './pages/Community';
 import PremiumPage from './pages/Premium';
-
-// The shared TopNav reports the label that was clicked; this is where each
-// label lands in our router. Labels with no page here (Notifications,
-// Messages) are simply left inert rather than sent somewhere misleading.
-const NAV_DESTINATIONS = {
-  Home: '/home',
-  Explore: '/explore',
-  Assistant: '/inkling',
-  Bookmarks: '/bookmark',
-  Communities: '/community',
-  Premium: '/premium',
-  Profile: '/profile',
-};
+import Messages from './pages/Messages';
 
 const initialProfile = {
   name: 'JQK',
@@ -51,21 +39,12 @@ const initialBookmarks = [
   { id: 'sample-3', initials: 'KP', name: 'Kai Park', handle: '@kaipark', time: '10h', color: 'bg-[#4E4C61]', text: 'Anyone else counting down to the World Cup? 🏆' },
 ];
 
-// Owns the profile/post/bookmark data the social pages share, and maps the
-// shared TopNav's labels onto real routes.
+// Owns the profile/post/bookmark data the social pages share.
 function AppRoutes() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(initialProfile);
   const [posts, setPosts] = useState(initialPosts);
   const [bookmarks, setBookmarks] = useState(initialBookmarks);
-
-  const handleNavigate = (label) => {
-    const destination = NAV_DESTINATIONS[label];
-    if (destination) navigate(destination);
-  };
-
-  // "Post" in the shared TopNav opens the composer, which lives on the profile page.
-  const goToComposer = () => navigate('/profile');
 
   const handleDeletePost = (postId) => {
     setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
@@ -122,7 +101,6 @@ function AppRoutes() {
             profile={profile}
             posts={posts}
             bookmarks={bookmarks}
-            onNavigate={handleNavigate}
             onEdit={() => navigate('/edit-profile')}
             onCreatePost={handleCreatePost}
             onDeletePost={handleDeletePost}
@@ -147,35 +125,14 @@ function AppRoutes() {
       <Route
         path="/bookmark"
         element={
-          <BookmarkPage
-            bookmarks={bookmarks}
-            onRemoveBookmark={handleRemoveBookmark}
-            onNavigate={handleNavigate}
-            onCreatePost={goToComposer}
-            profile={profile}
-          />
+          <BookmarkPage bookmarks={bookmarks} onRemoveBookmark={handleRemoveBookmark} />
         }
       />
-      <Route
-        path="/community"
-        element={
-          <CommunityPage
-            onNavigate={handleNavigate}
-            onCreatePost={goToComposer}
-            profile={profile}
-          />
-        }
-      />
-      <Route
-        path="/premium"
-        element={
-          <PremiumPage
-            onNavigate={handleNavigate}
-            onCreatePost={goToComposer}
-            profile={profile}
-          />
-        }
-      />
+      <Route path="/community" element={<CommunityPage />} />
+      <Route path="/premium" element={<PremiumPage />} />
+      {/* The open thread lives in the URL so Back returns to the list */}
+      <Route path="/messages" element={<Messages />} />
+      <Route path="/messages/:conversationId" element={<Messages />} />
       {/* Anything unknown (e.g. a stale link) goes back to the login page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

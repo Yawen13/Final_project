@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNav from '../Components/TopNav';
+import Navbar from '../Components/Navbar';
 
 const initialCommunities = [
   { id: 'product-design', name: 'Product Design', description: 'Share your process, feedback, and inspiration.', members: '12.4K', joined: true, tone: 'violet' },
@@ -11,7 +11,7 @@ const initialCommunities = [
 ];
 
 // Lets users discover, join, leave, and create communities.
-export default function CommunityPage({ onNavigate, onCreatePost, profile }) {
+export default function CommunityPage() {
   const [communities, setCommunities] = useState(initialCommunities);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [communityName, setCommunityName] = useState('');
@@ -39,7 +39,7 @@ export default function CommunityPage({ onNavigate, onCreatePost, profile }) {
 
   return (
     <div className="min-h-screen bg-[#f5f4fa] text-slate-900">
-      <TopNav activeItem="Communities" profile={profile} onNavigate={onNavigate} onCreatePost={onCreatePost} />
+      <Navbar />
 
       <main className="mx-auto w-full max-w-[1280px] px-4 pb-12 pt-6 sm:px-6 sm:pt-8">
         <div className="flex flex-wrap items-center justify-between gap-4">

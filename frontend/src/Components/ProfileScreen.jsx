@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNav from './TopNav';
+import Navbar from './Navbar';
 
 function MoreIcon({ className = 'h-4 w-4' }) {
   return (
@@ -30,7 +30,7 @@ function CalendarIcon({ className = 'h-4 w-4' }) {
 }
 
 // Shows the user's profile and supports creating, editing, deleting, and bookmarking posts.
-export default function ProfileScreen({ profile, posts, bookmarks, onNavigate, onEdit, onCreatePost, onDeletePost, onEditPost, onSaveBookmark }) {
+export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCreatePost, onDeletePost, onEditPost, onSaveBookmark }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [draftText, setDraftText] = useState('');
@@ -78,7 +78,7 @@ export default function ProfileScreen({ profile, posts, bookmarks, onNavigate, o
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#f3f2f5] text-slate-900">
-      <TopNav activeItem="Profile" profile={profile} onNavigate={onNavigate} onCreatePost={() => setIsComposerOpen(true)} />
+      <Navbar />
 
       <div className="mx-auto mt-8 box-border w-full max-w-[760px]">
         <div className="overflow-hidden rounded-t-[28px] border border-violet-100 bg-[linear-gradient(135deg,_#f3eaff_0%,_#f7effa_52%,_#faeeee_100%)] shadow-[0_18px_40px_rgba(109,40,217,0.08)]">
@@ -100,13 +100,23 @@ export default function ProfileScreen({ profile, posts, bookmarks, onNavigate, o
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-full border border-slate-900 bg-white px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900 hover:text-white hover:shadow-lg"
-          >
-            Edit profile
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* Opens the composer directly — the shared navbar has no Post button */}
+            <button
+              type="button"
+              onClick={() => setIsComposerOpen(true)}
+              className="rounded-full bg-[#635BFF] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5249ea] hover:shadow-lg"
+            >
+              New post
+            </button>
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-full border border-slate-900 bg-white px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-900 hover:text-white hover:shadow-lg"
+            >
+              Edit profile
+            </button>
+          </div>
         </div>
 
         <div className="mt-5">

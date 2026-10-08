@@ -2,17 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/U_logo.png';
 import InklingMark from './InklingMark';
+import { clearSession, loadSession } from '../api/auth';
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  // Read once on mount: signing in navigates, which remounts the bar
+  const [session] = useState(() => loadSession());
 
   function linkClass(path) {
+    const base = 'shrink-0 whitespace-nowrap text-sm font-medium';
     return location.pathname === path
-      ? 'text-sm font-medium text-gray-900'
-      : 'text-sm font-medium text-gray-500 hover:text-gray-900';
+      ? `${base} text-gray-900`
+      : `${base} text-gray-500 hover:text-gray-900`;
   }
 
   function menuItemClass(path) {
@@ -45,17 +49,18 @@ export default function Navbar() {
 
   function handleLogout() {
     setMenuOpen(false);
-    localStorage.removeItem('userToken');
+    clearSession();
     // replace: the logged-in page shouldn't come back on the browser Back button
     navigate('/', { replace: true });
   }
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur">
+    <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-y-1 border-b border-gray-100 bg-white/80 px-6 py-3 backdrop-blur">
       <img src={logoImg} alt="Unfinished Logo" className="h-8 w-auto shrink-0" />
 
-      {/* Kept out of the flex flow so the links land in the true center of the bar */}
-      <nav className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center gap-5">
+      {/* Below md the links drop onto their own scrollable row; from md up they
+          sit out of the flex flow so they land in the true center of the bar */}
+      <nav className="order-3 flex w-full items-center gap-5 overflow-x-auto md:absolute md:inset-y-0 md:left-1/2 md:order-none md:w-auto md:-translate-x-1/2 md:overflow-visible">
         <Link to="/home" className={linkClass('/home')}>
           Home
         </Link>
@@ -72,12 +77,15 @@ export default function Navbar() {
         <Link to="/premium" className={linkClass('/premium')}>
           Premium
         </Link>
+        <Link to="/messages" className={linkClass('/messages')}>
+          Messages
+        </Link>
       </nav>
 
       <div className="flex items-center gap-4">
-        {/* Held back to lg: the centred links need the room before that, and the
+        {/* Held back to xl: six centred links need the room before that, and the
             field is inert anyway */}
-        <div className="hidden lg:block lg:w-56">
+        <div className="hidden xl:block xl:w-56">
           <input
             type="text"
             placeholder="Search"
@@ -102,11 +110,15 @@ export default function Navbar() {
             >
               <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
-                  Y
+                  {(session?.displayName || 'You').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">You</p>
-                  <p className="truncate text-xs text-gray-400">@you</p>
+                  <p className="truncate text-sm font-semibold text-gray-900">
+                    {session?.displayName || 'You'}
+                  </p>
+                  <p className="truncate text-xs text-gray-400">
+                    @{session?.username || 'you'}
+                  </p>
                 </div>
               </div>
 

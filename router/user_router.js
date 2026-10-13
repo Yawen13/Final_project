@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // ตั้งชื่อไฟล์ใหม่ไม่ให้ซ้ำกัน
+//     Use Date.now() to ensure unique filenames and prevent overwriting
     cb(null, Date.now() + '-' + file.originalname);
   }
 });

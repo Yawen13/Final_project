@@ -11,8 +11,8 @@ Each member focuses on specific pages and features to enable parallel developmen
 | Member | Branch | Assigned Features / Components |
 | :--- | :--- | :--- |
 | **Joseph** | `frontend-Joseph` | • Login & Signup (`Login.jsx`)<br>• Notifications (`Notifications.jsx`)<br>• Direct Messages (`Message.jsx`)<br>• AI Assistant (`Assistant.jsx`) |
-| **Shiro** | `frontend-Shiro` | • Homepage / Feed (`Home.jsx`)<br>• Explore / Search (`Explore.jsx`) |
-| **KP** | `frontend-KP` | • Navigation Bar (`Navbar.jsx` / `Sidebar.jsx`)<br>• Bookmark (`Bookmark.jsx`)<br>• Community (`Community.jsx`)<br>• Premium / Subscription (`Premium.jsx`)<br>• User Profile (`Profile.jsx`) |
+| **Shiro** | `frontend-Shiro` | • Homepage / Feed (`Home.jsx`)<br>• Explore / Search (`Explore.jsx`) <br> • Navigation Bar (`Navbar.jsx` / `Sidebar.jsx`)|
+| **KP** | `frontend-KP` | • Bookmark (`Bookmark.jsx`)<br>• Community (`Community.jsx`)<br>• Premium / Subscription (`Premium.jsx`)<br>• User Profile (`Profile.jsx`) |
 
 ---
 

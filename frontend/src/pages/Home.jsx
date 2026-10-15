@@ -1,79 +1,53 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Navbar from '../Components/Navbar';
+import PostCard from '../Components/PostCard';
+import { usePosts } from '../context/PostsContext';
 
-const PLACEHOLDER_CONVERSATIONS = [
-  {
-    id: 1,
-    author: 'Maya Chen',
-    handle: '@mayachen',
-    preview: "Still figuring out the ending, but here's where it's going so far...",
-    timestamp: '2h',
-  },
-  {
-    id: 2,
-    author: 'Daniel Ortiz',
-    handle: '@danielortiz',
-    preview: 'Left this one open on purpose. Curious what you all think happens next.',
-    timestamp: '5h',
-  },
-  {
-    id: 3,
-    author: 'Priya Nair',
-    handle: '@priyanair',
-    preview: "Rough draft, don't judge too hard. Just wanted to get it out there.",
-    timestamp: '1d',
-  },
-];
-
-function Avatar({ name }) {
-  const initials = name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
-      {initials}
-    </div>
-  );
-}
-
-function ConversationCard({ conversation }) {
-  return (
-    <div className="flex gap-3 border-b border-gray-100 px-4 py-4 hover:bg-gray-50">
-      <Avatar name={conversation.author} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-gray-900">{conversation.author}</span>
-          <span className="text-sm text-gray-400">{conversation.handle}</span>
-          <span className="text-sm text-gray-400">· {conversation.timestamp}</span>
-        </div>
-        <p className="mt-1 truncate text-gray-700">{conversation.preview}</p>
-      </div>
-    </div>
-  );
-}
+const CURRENT_USER = {
+  authorId: 'you',
+  authorName: 'You',
+  authorHandle: '@you',
+};
 
 export default function Home() {
+  const { posts, addPost } = usePosts();
   const [draft, setDraft] = useState('');
-  const [conversations, setConversations] = useState(PLACEHOLDER_CONVERSATIONS);
+  const [mediaPreview, setMediaPreview] = useState('');
+  const [mediaType, setMediaType] = useState(''); // 'image' | 'video'
+  const fileInputRef = useRef(null);
+
+  function handleMediaChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isVideo = file.type.startsWith('video/');
+    const reader = new FileReader();
+    reader.onload = () => {
+      setMediaPreview(reader.result);
+      setMediaType(isVideo ? 'video' : 'image');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeMedia() {
+    setMediaPreview('');
+    setMediaType('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
 
   function handlePost(e) {
     e.preventDefault();
-    if (!draft.trim()) return;
+    if (!draft.trim() && !mediaPreview) return;
 
-    const newPost = {
-      id: conversations.length + 1,
-      author: 'You',
-      handle: '@you',
-      preview: draft.trim(),
-      timestamp: 'now',
-    };
+    addPost({
+      ...CURRENT_USER,
+      text: draft.trim(),
+      image: mediaType === 'image' ? mediaPreview : '',
+      video: mediaType === 'video' ? mediaPreview : '',
+    });
 
-    setConversations([newPost, ...conversations]);
     setDraft('');
+    removeMedia();
   }
 
   return (
@@ -89,10 +63,39 @@ export default function Home() {
             rows={3}
             className="w-full resize-none rounded-2xl border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
           />
-          <div className="mt-3 flex justify-end">
+
+          {mediaPreview && (
+            <div className="relative mt-3">
+              {mediaType === 'video' ? (
+                <video src={mediaPreview} controls className="max-h-72 w-full rounded-2xl" />
+              ) : (
+                <img src={mediaPreview} alt="" className="max-h-72 w-full rounded-2xl object-cover" />
+              )}
+              <button
+                type="button"
+                onClick={removeMedia}
+                className="absolute right-2 top-2 rounded-full bg-black/70 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center justify-between">
+            <label className="flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleMediaChange}
+                className="hidden"
+              />
+              Add photo / video
+            </label>
+
             <button
               type="submit"
-              disabled={!draft.trim()}
+              disabled={!draft.trim() && !mediaPreview}
               className="rounded-full bg-[#635BFF] px-6 py-2 font-medium text-white transition-colors hover:bg-[#5249ea] disabled:cursor-default disabled:opacity-50"
             >
               Post
@@ -101,8 +104,8 @@ export default function Home() {
         </form>
 
         <section>
-          {conversations.map((conversation) => (
-            <ConversationCard key={conversation.id} conversation={conversation} />
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} isOwner={post.authorId === CURRENT_USER.authorId} />
           ))}
         </section>
       </main>

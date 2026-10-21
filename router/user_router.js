@@ -60,7 +60,13 @@ router.post('/auth/register', async (req, res) => {
 
 // 2. Login 
 router.post('/auth/login', async (req, res) => {
-  const { username, password } = req.body;
+  // Express 5 leaves req.body undefined when the request has no JSON body
+  const { username, password } = req.body || {};
+  // Firestore rejects undefined in where(), so check before querying
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Please enter your username and password' });
+  }
+
   try {
     const usersRef = db.collection('users');
     const snapshot = await usersRef

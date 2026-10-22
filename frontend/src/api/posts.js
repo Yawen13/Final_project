@@ -118,6 +118,27 @@ export async function createPost({ userId, authorName, authorHandle, text, image
   return post;
 }
 
+/** Posts written by one user, newest first. */
+export async function listUserPosts(username, { userId } = {}) {
+  if (apiAvailable) {
+    try {
+      const params = new URLSearchParams();
+      if (userId) params.set('userId', userId);
+      const query = params.toString();
+      return await request(
+        `/users/${encodeURIComponent(username)}/posts${query ? `?${query}` : ''}`,
+      );
+    } catch (error) {
+      if (!shouldUseLocal(error)) throw error;
+    }
+  }
+
+  const handle = `@${username}`.toLowerCase();
+  return readLocal(userId).filter(
+    (post) => (post.authorHandle || '').toLowerCase() === handle,
+  );
+}
+
 /** Edits a post's text (author only). */
 export async function updatePost(postId, { userId, text }) {
   if (apiAvailable) {

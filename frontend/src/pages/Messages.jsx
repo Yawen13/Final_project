@@ -7,7 +7,10 @@ import {
   listMessages,
   markConversationRead,
   sendMessage,
+  startConversation,
 } from '../api/messages';
+import { searchUsers } from '../api/users';
+import { loadSession } from '../api/auth';
 
 const AVATAR_TONES = [
   'bg-[#f0eaff] text-[#6953d7]',
@@ -111,6 +114,8 @@ function BubbleSkeleton({ mine }) {
 export default function Messages() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
+  const session = loadSession();
+  const myId = session?.id || CURRENT_USER_ID;
 
   const [conversations, setConversations] = useState([]);
   const [listState, setListState] = useState('loading');
@@ -119,13 +124,22 @@ export default function Messages() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [search, setSearch] = useState('');
+  const [searchResult, setSearchResult] = useState({ query: '', rows: [], done: true });
+  const [startingId, setStartingId] = useState('');
 
   const threadRef = useRef(null);
+
+  const query = search.trim();
+  const showingSearch = query.length >= 2;
+  const resultMatches = searchResult.query === query;
+  const searching = showingSearch && !resultMatches;
+  const results = resultMatches ? searchResult.rows : [];
 
   useEffect(() => {
     let cancelled = false;
 
-    listConversations()
+    listConversations(myId)
       .then((rows) => {
         if (cancelled) return;
         setConversations(rows);
@@ -138,7 +152,21 @@ export default function Messages() {
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, myId]);
+
+  // Find people to message, debounced so each keystroke is not a request
+  useEffect(() => {
+    const text = search.trim();
+    if (text.length < 2) return undefined;
+
+    const timer = setTimeout(() => {
+      searchUsers(text, { excludeId: myId })
+        .then((rows) => setSearchResult({ query: text, rows, done: true }))
+        .catch(() => setSearchResult({ query: text, rows: [], done: true }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, myId]);
 
   useEffect(() => {
     if (!conversationId) return undefined;
@@ -146,7 +174,7 @@ export default function Messages() {
     let cancelled = false;
 
     // Opening a thread is what clears its badge, so do both in one pass.
-    markConversationRead(conversationId)
+    markConversationRead(conversationId, myId)
       .then(() => {
         if (cancelled) return;
         setConversations((current) =>
@@ -157,7 +185,7 @@ export default function Messages() {
       })
       .catch(() => {});
 
-    listMessages(conversationId)
+    listMessages(conversationId, { userId: myId })
       .then((rows) => {
         if (!cancelled) setThread({ conversationId, messages: rows, state: 'ready' });
       })
@@ -168,7 +196,74 @@ export default function Messages() {
     return () => {
       cancelled = true;
     };
-  }, [conversationId, reloadToken]);
+  }, [conversationId, reloadToken, myId]);
+
+  // Poll while the page is visible so replies from other people appear
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+
+      listConversations(myId)
+        .then((rows) => {
+          setConversations(
+            rows.map((conversation) =>
+              conversation.id === conversationId
+                ? { ...conversation, unreadCount: 0 }
+                : conversation,
+            ),
+          );
+        })
+        .catch(() => {});
+
+      if (conversationId) {
+        listMessages(conversationId, { userId: myId })
+          .then((rows) => {
+            setThread((current) => {
+              if (current.conversationId !== conversationId) return current;
+              // Do not drop an optimistic message that is still sending
+              if ((current.messages || []).some((message) => message.pending)) return current;
+              return { conversationId, messages: rows, state: 'ready' };
+            });
+          })
+          .catch(() => {});
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [conversationId, myId]);
+
+  async function messageUser(person) {
+    if (!session?.id) {
+      navigate('/');
+      return;
+    }
+
+    setStartingId(person.userId);
+    try {
+      const conversation = await startConversation({
+        userId: session.id,
+        participant: {
+          id: person.userId,
+          name: person.displayName || person.username,
+          handle: `@${person.username}`,
+          avatar: person.profileImageUrl || '',
+        },
+      });
+
+      setConversations((current) =>
+        current.some((existing) => existing.id === conversation.id)
+          ? current
+          : [conversation, ...current],
+      );
+      setSearch('');
+      setListState('ready');
+      navigate(`/messages/${conversation.id}`);
+    } catch (error) {
+      console.error('[messages] Could not start the conversation', error);
+    } finally {
+      setStartingId('');
+    }
+  }
 
   // A thread that has not resolved yet reads as loading, so nothing has to be
   // written to state when the URL changes.
@@ -192,7 +287,7 @@ export default function Messages() {
     const optimistic = {
       id: `pending-${Date.now()}`,
       conversationId,
-      senderId: CURRENT_USER_ID,
+      senderId: myId,
       text,
       sentAt: new Date().toISOString(),
       pending: true,
@@ -204,7 +299,7 @@ export default function Messages() {
     setSendError(null);
 
     try {
-      const stored = await sendMessage(conversationId, text);
+      const stored = await sendMessage(conversationId, text, myId);
       setThread((current) => ({
         ...current,
         messages: current.messages.map((message) => (message.id === optimistic.id ? stored : message)),
@@ -261,7 +356,54 @@ export default function Messages() {
               conversationId ? 'hidden lg:flex' : ''
             }`}
           >
-            {listState === 'error' ? (
+            <div className="border-b border-slate-100 p-3">
+              <label htmlFor="people-search" className="sr-only">
+                Search people
+              </label>
+              <input
+                id="people-search"
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search people to message"
+                className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800 outline-none transition focus:border-[#635BFF] focus:bg-white"
+              />
+            </div>
+
+            {showingSearch ? (
+              <ul className="min-h-[220px] flex-1 divide-y divide-slate-100 overflow-y-auto">
+                {searching && (
+                  <li className="px-4 py-4 text-sm text-slate-400">Searching…</li>
+                )}
+
+                {!searching && results.length === 0 && (
+                  <li className="px-4 py-4 text-sm text-slate-400">No people found.</li>
+                )}
+
+                {!searching &&
+                  results.map((person) => (
+                    <li key={person.userId} className="flex items-center gap-3 px-4 py-3">
+                      <Avatar name={person.displayName || person.username} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-slate-900">
+                          {person.displayName || person.username}
+                        </span>
+                        <span className="block truncate text-xs text-slate-400">
+                          @{person.username}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => messageUser(person)}
+                        disabled={startingId === person.userId}
+                        className="shrink-0 rounded-full border border-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-slate-900 hover:text-white disabled:opacity-50"
+                      >
+                        {startingId === person.userId ? 'Opening…' : 'Message'}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            ) : listState === 'error' ? (
               <div className="px-5 py-10 text-center">
                 <p className="text-sm font-medium text-slate-700">Could not load your conversations.</p>
                 <button
@@ -284,7 +426,7 @@ export default function Messages() {
                   <div className="px-6 py-12 text-center">
                     <p className="text-sm font-medium text-slate-700">No conversations yet.</p>
                     <p className="mt-2 text-sm text-slate-500">
-                      Threads with other makers will show up here.
+                      Search for someone above to start a conversation.
                     </p>
                   </div>
                 )}
@@ -401,7 +543,7 @@ export default function Messages() {
                   {threadState === 'ready' &&
                     !conversationMissing &&
                     messages.map((message, index) => {
-                      const mine = message.senderId === CURRENT_USER_ID;
+                      const mine = message.senderId === myId;
                       const startsDay = index === 0 || dayStamp(messages[index - 1].sentAt) !== dayStamp(message.sentAt);
 
                       return (

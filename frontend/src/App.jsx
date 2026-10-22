@@ -11,6 +11,7 @@ import CommunityPage from './pages/Community';
 import PremiumPage from './pages/Premium';
 import Messages from './pages/Messages';
 import PostDetail from './pages/PostDetail';
+import UserProfile from './pages/UserProfile';
 import { PostsProvider } from './context/PostsContext';
 import { usePosts } from './context/postsStore';
 import { relativeTime } from './lib/time';
@@ -181,6 +182,7 @@ function AppRoutes({ session }) {
       <Route path="/messages" element={<Messages />} />
       <Route path="/messages/:conversationId" element={<Messages />} />
       <Route path="/post/:postId" element={<PostDetail />} />
+      <Route path="/u/:username" element={<UserProfile />} />
       {/* Anything unknown (e.g. a stale link) goes back to the login page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

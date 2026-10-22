@@ -128,6 +128,10 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
     setIsEditing(false);
   }
 
+  const profilePath = post.authorHandle
+    ? `/u/${encodeURIComponent(post.authorHandle.replace(/^@/, ''))}`
+    : '';
+
   return (
     <article className="border-b border-gray-100 px-4 py-4">
       <div className="flex gap-3">
@@ -135,8 +139,21 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-gray-900">{post.authorName}</span>
-              <span className="text-sm text-gray-400">{post.authorHandle}</span>
+              {profilePath ? (
+                <>
+                  <Link to={profilePath} className="font-semibold text-gray-900 hover:underline">
+                    {post.authorName}
+                  </Link>
+                  <Link to={profilePath} className="text-sm text-gray-400 hover:underline">
+                    {post.authorHandle}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-gray-900">{post.authorName}</span>
+                  <span className="text-sm text-gray-400">{post.authorHandle}</span>
+                </>
+              )}
             </div>
 
             {isOwner && (

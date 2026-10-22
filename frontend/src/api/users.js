@@ -25,3 +25,20 @@ export async function updateUser(username, { userId, displayName, bio, location,
     body: JSON.stringify({ userId, displayName, bio, location, status, profileImageUrl }),
   });
 }
+
+/** Finds people by username or display name, for starting a conversation. */
+export async function searchUsers(query, { excludeId = '' } = {}) {
+  const text = query.trim();
+  if (!hasBackend || !text) return [];
+
+  const params = new URLSearchParams({ q: text });
+  if (excludeId) params.set('excludeId', excludeId);
+
+  try {
+    return await request(`/users?${params.toString()}`);
+  } catch (error) {
+    // An older backend without the search route
+    if (error.status === 404) return [];
+    throw error;
+  }
+}

@@ -40,56 +40,11 @@ const USE_PLACEHOLDER = !messagesUseApi;
 // Placeholder store — stands in for the database until the endpoints exist.
 // ---------------------------------------------------------------------------
 
-const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
+// No seeded conversations: the inbox starts empty until the backend serves
+// /conversations, and anything sent in placeholder mode is this session's own.
+let placeholderConversations = [];
 
-let placeholderConversations = [
-  {
-    id: 'c1',
-    participant: { id: 'u-maya', name: 'Maya Chen', handle: '@mayachen', avatar: '' },
-    lastMessage: { text: "Sent the second half — the ending still isn't landing.", sentAt: minutesAgo(12) },
-    unreadCount: 2,
-  },
-  {
-    id: 'c2',
-    participant: { id: 'u-daniel', name: 'Daniel Ortiz', handle: '@danielortiz', avatar: '' },
-    lastMessage: { text: 'Ha, I knew you would catch the timeline problem.', sentAt: minutesAgo(190) },
-    unreadCount: 0,
-  },
-  {
-    id: 'c3',
-    participant: { id: 'u-priya', name: 'Priya Nair', handle: '@priyanair', avatar: '' },
-    lastMessage: { text: 'Kept the second stanza. Everything after it is negotiable.', sentAt: minutesAgo(1500) },
-    unreadCount: 1,
-  },
-  {
-    id: 'c4',
-    participant: { id: 'u-leo', name: 'Leo Fischer', handle: '@leofischer', avatar: '' },
-    lastMessage: { text: 'Scene 4 rewrite is up. Cutting the voiceover helped.', sentAt: minutesAgo(2900) },
-    unreadCount: 0,
-  },
-];
-
-let placeholderMessages = {
-  c1: [
-    { id: 'm1', conversationId: 'c1', senderId: 'u-maya', text: 'Okay, the draft is finally out of my head and on the page.', sentAt: minutesAgo(1400) },
-    { id: 'm2', conversationId: 'c1', senderId: CURRENT_USER_ID, text: 'Read it twice. The middle section is doing the most work — I would not touch it.', sentAt: minutesAgo(1380) },
-    { id: 'm3', conversationId: 'c1', senderId: 'u-maya', text: 'That is the part I was most unsure about, so that helps.', sentAt: minutesAgo(90) },
-    { id: 'm4', conversationId: 'c1', senderId: 'u-maya', text: "Sent the second half — the ending still isn't landing.", sentAt: minutesAgo(12) },
-  ],
-  c2: [
-    { id: 'm5', conversationId: 'c2', senderId: 'u-daniel', text: 'Where does chapter three sit for you? I think it jumps.', sentAt: minutesAgo(240) },
-    { id: 'm6', conversationId: 'c2', senderId: CURRENT_USER_ID, text: 'It jumps because the letter arrives before we care about the sender.', sentAt: minutesAgo(205) },
-    { id: 'm7', conversationId: 'c2', senderId: 'u-daniel', text: 'Ha, I knew you would catch the timeline problem.', sentAt: minutesAgo(190) },
-  ],
-  c3: [
-    { id: 'm8', conversationId: 'c3', senderId: 'u-priya', text: 'the kettle hums / and I forget, for a second, / what I was mourning', sentAt: minutesAgo(1600) },
-    { id: 'm9', conversationId: 'c3', senderId: CURRENT_USER_ID, text: 'The turn on "for a second" is the whole poem. Do not explain it.', sentAt: minutesAgo(1560) },
-    { id: 'm10', conversationId: 'c3', senderId: 'u-priya', text: 'Kept the second stanza. Everything after it is negotiable.', sentAt: minutesAgo(1500) },
-  ],
-  c4: [
-    { id: 'm11', conversationId: 'c4', senderId: 'u-leo', text: 'Scene 4 rewrite is up. Cutting the voiceover helped.', sentAt: minutesAgo(2900) },
-  ],
-};
+let placeholderMessages = {};
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

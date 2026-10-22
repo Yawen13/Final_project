@@ -1,7 +1,10 @@
 import Navbar from '../Components/Navbar';
+import { loadSession } from '../api/auth';
 
 // Lists saved posts and lets the user remove them from bookmarks.
 export default function BookmarkPage({ bookmarks, onRemoveBookmark }) {
+  const session = loadSession();
+
   return (
     <div className="min-h-screen bg-[#f5f4fa] text-slate-900">
       <Navbar />
@@ -10,7 +13,9 @@ export default function BookmarkPage({ bookmarks, onRemoveBookmark }) {
         <div className="mb-5">
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">Bookmarks</h1>
-            <p className="mt-1 text-sm text-slate-500">@JQK567</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {session?.username ? `@${session.username}` : ''}
+            </p>
           </div>
         </div>
 

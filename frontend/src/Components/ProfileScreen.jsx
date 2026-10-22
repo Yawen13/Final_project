@@ -29,6 +29,25 @@ function CalendarIcon({ className = 'h-4 w-4' }) {
   );
 }
 
+// "October 2026" from the account's createdAt, or '' when the backend did not send one
+function joinedLabel(createdAt) {
+  if (!createdAt) return '';
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+}
+
+function initialsOf(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 // Shows the user's profile and supports creating, editing, deleting, and bookmarking posts.
 export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCreatePost, onDeletePost, onEditPost, onSaveBookmark }) {
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -65,12 +84,14 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
     reader.readAsDataURL(file);
   };
 
-  const publishPost = (event) => {
+  const publishPost = async (event) => {
     event.preventDefault();
     const text = newPostText.trim();
     if (!text && !newPostImage) return;
 
-    onCreatePost(text, newPostImage);
+    const created = await onCreatePost(text, newPostImage);
+    if (!created) return;
+
     setNewPostText('');
     setNewPostImage('');
     setIsComposerOpen(false);
@@ -94,7 +115,7 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
                 <img src={profile.avatar} alt={profile.name} className="h-[96px] w-[96px] object-cover sm:h-[108px] sm:w-[108px]" />
               ) : (
                 <div className="flex h-[96px] w-[96px] items-center justify-center text-3xl font-bold text-white sm:h-[108px] sm:w-[108px]">
-                  {profile.name?.slice(0, 2).toUpperCase() || 'JD'}
+                  {profile.name?.slice(0, 2).toUpperCase() || 'U'}
                 </div>
               )}
             </div>
@@ -133,23 +154,28 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
           )}
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
-            <div className="flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1.5">
-              <LocationIcon className="h-4 w-4 text-slate-500" />
-              <span>{profile.location}</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1.5">
-              <CalendarIcon className="h-4 w-4 text-slate-500" />
-              <span>Joined October 2026</span>
-            </div>
+            {profile.location && (
+              <div className="flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1.5">
+                <LocationIcon className="h-4 w-4 text-slate-500" />
+                <span>{profile.location}</span>
+              </div>
+            )}
+            {joinedLabel(profile.createdAt) && (
+              <div className="flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1.5">
+                <CalendarIcon className="h-4 w-4 text-slate-500" />
+                <span>Joined {joinedLabel(profile.createdAt)}</span>
+              </div>
+            )}
           </div>
 
+          {/* Real counts come from GET /users/:username */}
           <div className="mt-6 flex gap-8">
             <div className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
-              <div className="text-lg font-bold text-slate-900">0</div>
+              <div className="text-lg font-bold text-slate-900">{profile.followingCount ?? 0}</div>
               <div className="text-slate-500">Following</div>
             </div>
             <div className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
-              <div className="text-lg font-bold text-slate-900">99M</div>
+              <div className="text-lg font-bold text-slate-900">{profile.followerCount ?? 0}</div>
               <div className="text-slate-500">Followers</div>
             </div>
           </div>
@@ -182,7 +208,7 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4E4C61] text-xs font-bold text-white">
-                    MK
+                    {initialsOf(profile.name) || 'U'}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -304,6 +330,11 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
                 </div>
               </article>
             ))}
+            {posts.length === 0 && (
+              <p className="rounded-[22px] border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">
+                No posts yet. Share your first unfinished piece.
+              </p>
+            )}
           </div>
         </div>
       </main>

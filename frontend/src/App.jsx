@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Explore from './pages/Explore';
@@ -10,81 +10,100 @@ import BookmarkPage from './pages/Bookmark';
 import CommunityPage from './pages/Community';
 import PremiumPage from './pages/Premium';
 import Messages from './pages/Messages';
+import PostDetail from './pages/PostDetail';
+import { PostsProvider } from './context/PostsContext';
+import { usePosts } from './context/postsStore';
+import { relativeTime } from './lib/time';
+import { loadSession, saveSession } from './api/auth';
+import { clearProfileOverride, loadProfileOverride, saveProfileOverride } from './api/profile';
+import { getUser, updateUser } from './api/users';
 
-const initialProfile = {
-  name: 'JQK',
-  username: '@JQK567',
-  location: 'Chiang Mai, Thailand',
-  bio: 'Design student · building Unifinish with my "Excellent 5" team 🎓✨',
-  status: 'Open to new ideas',
-  avatar: '',
-};
+function initialsOf(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
 
-const initialPosts = [
-  {
-    id: 1,
-    text: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-    time: '2h',
-  },
-  {
-    id: 2,
-    text: 'Exam  is next week, wish us luck!',
-    time: '1d',
-  },
-];
+// The signed-in account is the profile; GET /users/:username fills in the
+// fields login does not carry, and anything the edit form could not save to
+// the server is layered on from localStorage.
+function buildProfile(session, account) {
+  const username = account?.username || session?.username || '';
+  const base = {
+    name: account?.displayName || session?.displayName || username,
+    username: username ? `@${username}` : '',
+    bio: account?.bio ?? session?.bio ?? '',
+    location: account?.location || '',
+    status: account?.status || '',
+    avatar: account?.profileImageUrl || '',
+    createdAt: account?.createdAt || session?.createdAt || '',
+    followerCount: account?.followerCount ?? 0,
+    followingCount: account?.followingCount ?? 0,
+  };
 
-const initialBookmarks = [
-  { id: 'sample-1', initials: 'JL', name: 'Jordan Lee', handle: '@jordanlee', time: '1h', color: 'bg-[#6953D7]', text: 'There was a football match today! ⚽' },
-  { id: 'sample-2', initials: 'AC', name: 'Amara Chen', handle: '@amarafields', time: '5h', color: 'bg-[#F06D5F]', text: 'Chasing golden hour through the flower fields 🌾', image: true },
-  { id: 'sample-3', initials: 'KP', name: 'Kai Park', handle: '@kaipark', time: '10h', color: 'bg-[#4E4C61]', text: 'Anyone else counting down to the World Cup? 🏆' },
-];
+  const override = loadProfileOverride(session?.id);
+  return override ? { ...base, ...override } : base;
+}
 
-// Owns the profile/post/bookmark data the social pages share.
-function AppRoutes() {
+function AppRoutes({ session }) {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(initialProfile);
-  const [posts, setPosts] = useState(initialPosts);
-  const [bookmarks, setBookmarks] = useState(initialBookmarks);
+  const location = useLocation();
+  const { posts, addPost, deletePost, editPost, toggleBookmark } = usePosts();
 
-  const handleDeletePost = (postId) => {
-    setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
-  };
+  const [account, setAccount] = useState(null);
+  // Ignore a record fetched for a different account (e.g. right after logout)
+  const activeAccount = account?.username === session?.username ? account : null;
 
-  const handleEditPost = (postId, nextText) => {
-    setPosts((currentPosts) =>
-      currentPosts.map((post) => (post.id === postId ? { ...post, text: nextText } : post)),
-    );
-  };
+  useEffect(() => {
+    const username = session?.username;
+    if (!username) return undefined;
 
-  const handleCreatePost = (text, image) => {
-    setPosts((currentPosts) => [{ id: Date.now(), text, image, time: 'now' }, ...currentPosts]);
-  };
+    let cancelled = false;
+    getUser(username)
+      .then((user) => {
+        if (!cancelled) setAccount(user);
+      })
+      .catch(() => {
+        // Keep the session values when the profile lookup fails
+      });
 
-  const handleSaveBookmark = (post) => {
-    setBookmarks((currentBookmarks) => {
-      const bookmarkId = `profile-${post.id}`;
-      if (currentBookmarks.some((bookmark) => bookmark.id === bookmarkId)) {
-        return currentBookmarks;
-      }
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.username, location.pathname]);
 
-      return [
-        {
-          ...post,
-          id: bookmarkId,
-          name: profile.name,
-          handle: profile.username,
-          initials: profile.name.slice(0, 2).toUpperCase(),
-          color: 'bg-[#4E4C61]',
-        },
-        ...currentBookmarks,
-      ];
-    });
-  };
+  const profile = useMemo(() => buildProfile(session, activeAccount), [session, activeAccount]);
 
-  const handleRemoveBookmark = (bookmarkId) => {
-    setBookmarks((currentBookmarks) =>
-      currentBookmarks.filter((bookmark) => bookmark.id !== bookmarkId),
-    );
+  // Profile shows only the posts this account wrote
+  const profilePosts = posts
+    .filter((post) => session && post.authorId === session.id)
+    .map((post) => ({ ...post, time: relativeTime(post.createdAt) }));
+
+  // One bookmark list, shared by the bookmark page and the profile menu
+  const bookmarkedPosts = posts.filter((post) => post.bookmarked);
+  const bookmarksForPage = bookmarkedPosts.map((post) => ({
+    id: post.id,
+    name: post.authorName,
+    handle: post.authorHandle,
+    initials: initialsOf(post.authorName),
+    color: 'bg-[#4E4C61]',
+    time: relativeTime(post.createdAt),
+    text: post.text,
+    image: post.image || undefined,
+  }));
+  const bookmarksForProfile = bookmarkedPosts.map((post) => ({
+    ...post,
+    id: `profile-${post.id}`,
+  }));
+
+  const author = {
+    authorId: session?.id || 'local',
+    authorName: profile.name || 'You',
+    authorHandle: profile.username,
   };
 
   return (
@@ -99,13 +118,13 @@ function AppRoutes() {
         element={
           <ProfileScreen
             profile={profile}
-            posts={posts}
-            bookmarks={bookmarks}
+            posts={profilePosts}
+            bookmarks={bookmarksForProfile}
             onEdit={() => navigate('/edit-profile')}
-            onCreatePost={handleCreatePost}
-            onDeletePost={handleDeletePost}
-            onEditPost={handleEditPost}
-            onSaveBookmark={handleSaveBookmark}
+            onCreatePost={(text, image) => addPost({ ...author, text, image })}
+            onDeletePost={deletePost}
+            onEditPost={editPost}
+            onSaveBookmark={(post) => toggleBookmark(post.id)}
           />
         }
       />
@@ -114,8 +133,33 @@ function AppRoutes() {
         element={
           <EditProfilePage
             profile={profile}
-            onSave={(nextProfile) => {
-              setProfile(nextProfile);
+            onSave={async (nextProfile) => {
+              try {
+                if (!session?.username || !session?.id) throw new Error('Not signed in');
+
+                await updateUser(session.username, {
+                  userId: session.id,
+                  displayName: nextProfile.name,
+                  bio: nextProfile.bio,
+                  location: nextProfile.location,
+                  status: nextProfile.status,
+                  profileImageUrl: nextProfile.avatar,
+                });
+                // The server is the source of truth now
+                clearProfileOverride(session.id);
+              } catch {
+                // Older backend without PATCH /users/:username — keep the edit
+                // on this device so the form still appears to save
+                saveProfileOverride(session?.id, nextProfile);
+              }
+              // The navbar and composer read the session, so keep it in step
+              if (session?.id) {
+                saveSession({
+                  ...session,
+                  displayName: nextProfile.name,
+                  bio: nextProfile.bio,
+                });
+              }
               navigate('/profile');
             }}
             onCancel={() => navigate('/profile')}
@@ -125,7 +169,10 @@ function AppRoutes() {
       <Route
         path="/bookmark"
         element={
-          <BookmarkPage bookmarks={bookmarks} onRemoveBookmark={handleRemoveBookmark} />
+          <BookmarkPage
+            bookmarks={bookmarksForPage}
+            onRemoveBookmark={(bookmarkId) => toggleBookmark(bookmarkId)}
+          />
         }
       />
       <Route path="/community" element={<CommunityPage />} />
@@ -133,16 +180,36 @@ function AppRoutes() {
       {/* The open thread lives in the URL so Back returns to the list */}
       <Route path="/messages" element={<Messages />} />
       <Route path="/messages/:conversationId" element={<Messages />} />
+      <Route path="/post/:postId" element={<PostDetail />} />
       {/* Anything unknown (e.g. a stale link) goes back to the login page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
+function AppShell() {
+  const location = useLocation();
+  // Signing in and out both end in a navigation, so the route is the signal
+  // that the stored session may have changed. The dependency is deliberate.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const session = useMemo(() => loadSession(), [location.pathname]);
+
+  return (
+    // Keyed by account: each user gets their own feed, bookmarks included
+    <PostsProvider
+      key={session?.id || 'guest'}
+      ownerId={session?.id}
+      ownerName={session?.displayName || session?.username || ''}
+    >
+      <AppRoutes session={session} />
+    </PostsProvider>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AppShell />
     </BrowserRouter>
   );
 }

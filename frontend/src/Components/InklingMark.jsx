@@ -1,4 +1,3 @@
-import React from 'react';
 
 // An open circle — a stroke that never quite closes, which is the whole idea.
 // `drawing` runs the stroke in and back out, used as the waiting indicator.

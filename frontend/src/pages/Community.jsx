@@ -1,21 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../Components/Navbar';
+import { loadCommunities, saveCommunities } from '../api/communities';
 
-const initialCommunities = [
-  { id: 'product-design', name: 'Product Design', description: 'Share your process, feedback, and inspiration.', members: '12.4K', joined: true, tone: 'violet' },
-  { id: 'football-fans', name: 'Football Fans', description: 'The home for match day conversations.', members: '48.1K', joined: true, tone: 'peach' },
-  { id: 'oss', name: 'Open Source Builders', description: 'Ship, review, and talk shop with fellow maintainers.', members: '24.5K', joined: false, tone: 'violet' },
-  { id: 'world-cup', name: 'World Cup 2026', description: 'Match threads, predictions, and live reactions.', members: '182K', joined: false, tone: 'peach' },
-  { id: 'swimming', name: 'Swimming Championships', description: 'Heats, splits, and podium talk from fans and athletes.', members: '8.2K', joined: false, tone: 'violet' },
-  { id: 'film', name: 'Film & TV', description: 'Reviews, trailers, and festival buzz.', members: '36.1K', joined: false, tone: 'peach' },
-];
+// Communities used to be a list of demo rows with invented member counts. They
+// now start empty and are saved per account until the backend serves them.
 
 // Lets users discover, join, leave, and create communities.
 export default function CommunityPage() {
-  const [communities, setCommunities] = useState(initialCommunities);
+  const [communities, setCommunities] = useState(loadCommunities);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [communityName, setCommunityName] = useState('');
   const [communityDescription, setCommunityDescription] = useState('');
+
+  useEffect(() => {
+    saveCommunities(communities);
+  }, [communities]);
 
   const toggleMembership = (communityId) => {
     setCommunities((current) => current.map((community) =>
@@ -72,33 +71,43 @@ export default function CommunityPage() {
               </div>
             ))}
             {!communities.some((community) => community.joined) && (
-              <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">Join a community to see it here.</p>
+              <p className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                {communities.length
+                  ? 'Join a community to see it here.'
+                  : 'No communities yet. Create the first one.'}
+              </p>
             )}
           </div>
         </section>
 
         <section className="mt-8" aria-labelledby="discover-communities-heading">
           <h2 id="discover-communities-heading" className="mb-3 text-sm font-semibold">Discover new communities</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {communities.filter((community) => !community.joined).map((community) => (
-              <article key={community.id} className="overflow-hidden rounded-[22px] bg-white shadow-[0_6px_18px_rgba(31,24,65,0.05)]">
-                <div className={`relative h-[145px] overflow-hidden ${community.tone === 'peach' ? 'bg-[#fff0ed]' : 'bg-[#f0eaff]'}`} aria-hidden="true">
-                  <span className={`absolute -right-2 -top-8 h-28 w-28 rounded-full ${community.tone === 'peach' ? 'bg-[#ffd9d1]' : 'bg-[#ded2ff]'}`} />
-                  <span className={`absolute -bottom-14 left-1/3 h-32 w-32 rounded-full ${community.tone === 'peach' ? 'bg-[#ffe6df]' : 'bg-[#e8defe]'}`} />
-                </div>
-                <div className="flex items-end justify-between gap-4 p-4 sm:p-5">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold">{community.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{community.description}</p>
-                    <p className="mt-4 text-xs text-slate-400">{community.members} members</p>
+          {communities.some((community) => !community.joined) ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {communities.filter((community) => !community.joined).map((community) => (
+                <article key={community.id} className="overflow-hidden rounded-[22px] bg-white shadow-[0_6px_18px_rgba(31,24,65,0.05)]">
+                  <div className={`relative h-[145px] overflow-hidden ${community.tone === 'peach' ? 'bg-[#fff0ed]' : 'bg-[#f0eaff]'}`} aria-hidden="true">
+                    <span className={`absolute -right-2 -top-8 h-28 w-28 rounded-full ${community.tone === 'peach' ? 'bg-[#ffd9d1]' : 'bg-[#ded2ff]'}`} />
+                    <span className={`absolute -bottom-14 left-1/3 h-32 w-32 rounded-full ${community.tone === 'peach' ? 'bg-[#ffe6df]' : 'bg-[#e8defe]'}`} />
                   </div>
-                  <button type="button" onClick={() => toggleMembership(community.id)} className="shrink-0 rounded-full border border-slate-900 bg-white px-4 py-1.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-900 hover:text-white">
-                    Join
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="flex items-end justify-between gap-4 p-4 sm:p-5">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold">{community.name}</h3>
+                      <p className="mt-1 text-sm text-slate-500">{community.description}</p>
+                      <p className="mt-4 text-xs text-slate-400">{community.members} members</p>
+                    </div>
+                    <button type="button" onClick={() => toggleMembership(community.id)} className="shrink-0 rounded-full border border-slate-900 bg-white px-4 py-1.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-900 hover:text-white">
+                      Join
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-slate-500 shadow-sm">
+              Nothing to discover yet. Communities you leave will show up here.
+            </p>
+          )}
         </section>
       </main>
 

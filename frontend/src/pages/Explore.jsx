@@ -1,22 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
+import { usePosts } from '../context/postsStore';
+import { relativeTime } from '../lib/time';
+import { hashtagsFrom } from '../lib/tags';
 
-const TRENDING_TAGS = ['#shortstories', '#worldbuilding', '#poetry', '#screenwriting', '#lyrics'];
+function Avatar({ name = '' }) {
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
-const PLACEHOLDER_POSTS = [
-  { id: 1, author: 'Maya Chen', handle: '@mayachen', preview: "The door was ajar when she got home, and she'd sworn she locked it...", tag: '#shortstories' },
-  { id: 2, author: 'Daniel Ortiz', handle: '@danielortiz', preview: 'A kingdom held together by a single unspoken promise.', tag: '#worldbuilding' },
-  { id: 3, author: 'Priya Nair', handle: '@priyanair', preview: 'the kettle hums / and I forget, for a second, / what I was mourning', tag: '#poetry' },
-  { id: 4, author: 'Leo Fischer', handle: '@leofischer', preview: 'INT. DINER - NIGHT. Two strangers, one booth, and a secret neither will say first.', tag: '#screenwriting' },
-  { id: 5, author: 'Ava Whitman', handle: '@avawhitman', preview: 'Verse one is done. Chorus keeps changing every time I sing it.', tag: '#lyrics' },
-  { id: 6, author: 'Noah Kim', handle: '@noahkim', preview: 'She kept the map, even after the country on it stopped existing.', tag: '#shortstories' },
-];
-
-function Avatar({ name }) {
-  const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-xs font-semibold text-[#635BFF]">
-      {initials}
+      {initials || 'U'}
     </div>
   );
 }
@@ -25,25 +25,36 @@ function PostCard({ post }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm">
       <div className="flex items-center gap-2">
-        <Avatar name={post.author} />
+        <Avatar name={post.authorName} />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900">{post.author}</p>
-          <p className="truncate text-xs text-gray-400">{post.handle}</p>
+          <p className="truncate text-sm font-semibold text-gray-900">{post.authorName}</p>
+          <p className="truncate text-xs text-gray-400">
+            {post.authorHandle} · {relativeTime(post.createdAt)}
+          </p>
         </div>
       </div>
-      <p className="text-sm text-gray-700">{post.preview}</p>
-      <span className="text-xs font-medium text-[#635BFF]">{post.tag}</span>
+      <p className="line-clamp-4 text-sm text-gray-700">{post.text}</p>
+      {post.image && (
+        <img src={post.image} alt="" className="max-h-56 w-full rounded-xl object-cover" />
+      )}
     </div>
   );
 }
 
 export default function Explore() {
-  const [activeTag, setActiveTag] = useState(null);
+  const { posts, loading, error } = usePosts();
+  // The tag lives in the URL so the sidebar can link straight to it
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTag = searchParams.get('tag');
 
+  const tags = useMemo(
+    () => hashtagsFrom(posts).slice(0, 8).map((entry) => entry.tag),
+    [posts],
+  );
   const visiblePosts = useMemo(() => {
-    if (!activeTag) return PLACEHOLDER_POSTS;
-    return PLACEHOLDER_POSTS.filter((post) => post.tag === activeTag);
-  }, [activeTag]);
+    if (!activeTag) return posts;
+    return posts.filter((post) => (post.text || '').toLowerCase().includes(activeTag));
+  }, [posts, activeTag]);
 
   return (
     <div className="min-h-screen w-full bg-white">
@@ -57,17 +68,17 @@ export default function Explore() {
 
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setActiveTag(null)}
+            onClick={() => setSearchParams({})}
             className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
               activeTag === null ? 'border-[#635BFF] bg-[#635BFF] text-white' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
             All
           </button>
-          {TRENDING_TAGS.map((tag) => (
+          {tags.map((tag) => (
             <button
               key={tag}
-              onClick={() => setActiveTag(tag)}
+              onClick={() => setSearchParams({ tag })}
               className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
                 activeTag === tag ? 'border-[#635BFF] bg-[#635BFF] text-white' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
@@ -83,8 +94,14 @@ export default function Explore() {
           ))}
         </section>
 
-        {visiblePosts.length === 0 && (
-          <p className="py-12 text-center text-sm text-gray-400">Nothing tagged {activeTag} yet.</p>
+        {!loading && error && (
+          <p className="py-12 text-center text-sm text-red-500">{error}</p>
+        )}
+
+        {!loading && !error && visiblePosts.length === 0 && (
+          <p className="py-12 text-center text-sm text-gray-400">
+            {activeTag ? `Nothing tagged ${activeTag} yet.` : 'No posts yet. Share something on Home first.'}
+          </p>
         )}
       </main>
     </div>

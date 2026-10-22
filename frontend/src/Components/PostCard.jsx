@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { usePosts } from '../context/PostsContext';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { usePosts } from '../context/postsStore';
 
 function CommentIcon(props) {
   return (
@@ -100,9 +101,9 @@ function Avatar({ name }) {
   );
 }
 
-export default function PostCard({ post, isOwner = false }) {
+export default function PostCard({ post, isOwner = false, linkToPost = false, commentsOpen = false }) {
   const { toggleLike, toggleRepost, toggleBookmark, addComment, deletePost, editPost } = usePosts();
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(commentsOpen);
   const [commentDraft, setCommentDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -224,7 +225,17 @@ export default function PostCard({ post, isOwner = false }) {
             </div>
           ) : (
             <>
-              {post.text && <p className="mt-1 text-gray-800">{post.text}</p>}
+              {post.text &&
+                (linkToPost ? (
+                  <Link
+                    to={`/post/${post.id}`}
+                    className="mt-1 block text-gray-800 hover:underline"
+                  >
+                    {post.text}
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-gray-800">{post.text}</p>
+                ))}
               {post.image && (
                 <img src={post.image} alt="" className="mt-3 max-h-96 w-full rounded-2xl object-cover" />
               )}

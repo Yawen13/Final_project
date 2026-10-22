@@ -279,44 +279,54 @@ export default function Messages() {
                 ))}
               </ul>
             ) : (
-              <ul className="max-h-[60vh] min-h-[260px] flex-1 divide-y divide-slate-100 overflow-y-auto lg:max-h-none lg:min-h-0">
-                {conversations.map((conversation) => {
-                  const isActive = conversation.id === conversationId;
-                  const { participant, lastMessage, unreadCount } = conversation;
+              <>
+                {conversations.length === 0 && (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-sm font-medium text-slate-700">No conversations yet.</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Threads with other makers will show up here.
+                    </p>
+                  </div>
+                )}
+                <ul className="max-h-[60vh] min-h-[260px] flex-1 divide-y divide-slate-100 overflow-y-auto lg:max-h-none lg:min-h-0">
+                  {conversations.map((conversation) => {
+                    const isActive = conversation.id === conversationId;
+                    const { participant, lastMessage, unreadCount } = conversation;
 
-                  return (
-                    <li key={conversation.id}>
-                      <Link
-                        to={`/messages/${conversation.id}`}
-                        aria-current={isActive ? 'true' : undefined}
-                        className={`flex items-start gap-3 px-4 py-3.5 transition ${
-                          isActive ? 'bg-[#f7f5ff]' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <Avatar name={participant.name} />
+                    return (
+                      <li key={conversation.id}>
+                        <Link
+                          to={`/messages/${conversation.id}`}
+                          aria-current={isActive ? 'true' : undefined}
+                          className={`flex items-start gap-3 px-4 py-3.5 transition ${
+                            isActive ? 'bg-[#f7f5ff]' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <Avatar name={participant.name} />
 
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-baseline justify-between gap-2">
-                            <span className={`truncate text-sm text-slate-900 ${unreadCount > 0 ? 'font-semibold' : 'font-medium'}`}>
-                              {participant.name}
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className={`truncate text-sm text-slate-900 ${unreadCount > 0 ? 'font-semibold' : 'font-medium'}`}>
+                                {participant.name}
+                              </span>
+                              <span className="shrink-0 text-[11px] text-slate-400">{shortWhen(lastMessage.sentAt)}</span>
                             </span>
-                            <span className="shrink-0 text-[11px] text-slate-400">{shortWhen(lastMessage.sentAt)}</span>
+                            <span className={`mt-0.5 block truncate text-sm ${unreadCount > 0 ? 'text-slate-700' : 'text-slate-500'}`}>
+                              {lastMessage.text}
+                            </span>
                           </span>
-                          <span className={`mt-0.5 block truncate text-sm ${unreadCount > 0 ? 'text-slate-700' : 'text-slate-500'}`}>
-                            {lastMessage.text}
-                          </span>
-                        </span>
 
-                        {unreadCount > 0 && (
-                          <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#635BFF] px-1.5 text-[11px] font-semibold text-white">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                          {unreadCount > 0 && (
+                            <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#635BFF] px-1.5 text-[11px] font-semibold text-white">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
             )}
           </section>
 

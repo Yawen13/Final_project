@@ -5,7 +5,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+// Posts carry Base64 images; keep this above Firestore's 1 MB document limit
+app.use(express.json({ limit: '5mb' }));
 app.use('/uploads', express.static('uploads'));
 
 // Import and use the user router
@@ -14,8 +15,6 @@ app.use('/api', require('./router/user_router'));
 app.use('/api', require('./router/post_router'));
 // Direct messages
 app.use('/api', require('./router/conversation_router'));
-// Image and video uploads backed by Firebase Storage
-app.use('/api', require('./router/upload_router'));
 
 app.listen(PORT, () => {
   console.log(`Backend Server running on port ${PORT}`);

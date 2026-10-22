@@ -183,6 +183,9 @@ router.patch('/users/:username', async (req, res) => {
   if (!userId) {
     return res.status(400).json({ message: 'Missing userId in request body' });
   }
+  if (typeof profileImageUrl === 'string' && profileImageUrl.length > 900000) {
+    return res.status(413).json({ message: 'That image is too large. Please choose a smaller one.' });
+  }
 
   try {
     const snapshot = await db.collection('users').where('username', '==', username).get();

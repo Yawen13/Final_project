@@ -177,6 +177,10 @@ router.post('/posts', async (req, res) => {
   if (!String(text).trim() && !image && !video) {
     return res.status(400).json({ message: 'Post cannot be empty' });
   }
+  // Firestore documents are capped at 1 MB, so keep the Base64 image below it
+  if (String(image).length > 900000 || String(video).length > 900000) {
+    return res.status(413).json({ message: 'That image is too large. Please choose a smaller one.' });
+  }
 
   try {
     const user = await findUserById(userId);

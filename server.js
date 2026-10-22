@@ -12,6 +12,8 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api', require('./router/user_router'));
 // Posts, comments, likes, reposts, and bookmarks
 app.use('/api', require('./router/post_router'));
+// Direct messages
+app.use('/api', require('./router/conversation_router'));
 
 app.listen(PORT, () => {
   console.log(`Backend Server running on port ${PORT}`);

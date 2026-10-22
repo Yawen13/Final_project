@@ -103,7 +103,39 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-// 3. Get user by username 
+// Search users by username or display name, for starting a conversation
+router.get('/users', async (req, res) => {
+  const query = String(req.query.q || '').trim().toLowerCase();
+  const excludeId = String(req.query.excludeId || '');
+
+  if (!query) {
+    return res.json([]);
+  }
+
+  try {
+    const snapshot = await db.collection('users').limit(200).get();
+    const users = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(user => user.id !== excludeId)
+      .filter(user =>
+        (user.username || '').toLowerCase().includes(query) ||
+        (user.display_name || '').toLowerCase().includes(query)
+      )
+      .slice(0, 20)
+      .map(user => ({
+        userId: user.id,
+        username: user.username,
+        displayName: user.display_name || user.username,
+        profileImageUrl: user.profile_image_url || ''
+      }));
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Get user by username
 router.get('/users/:username', async (req, res) => {
   const { username } = req.params;
   try {

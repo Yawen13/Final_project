@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { loadSession } from '../api/auth';
 import { loadCommunities } from '../api/communities';
+import { useAccount } from '../context/accountStore';
 import { hashtagsFrom } from '../lib/tags';
 import { initialsOf } from '../lib/names';
 
@@ -9,31 +10,40 @@ import { initialsOf } from '../lib/names';
 // communities this account joined.
 export default function HomeSidebar({ posts }) {
   const session = useMemo(() => loadSession(), []);
+  const account = useAccount();
   const communities = useMemo(
     () => loadCommunities().filter((community) => community.joined).slice(0, 3),
     [],
   );
   const trends = useMemo(() => hashtagsFrom(posts).slice(0, 5), [posts]);
 
-  const name = session?.displayName || session?.username || 'You';
-  const handle = session?.username ? `@${session.username}` : '';
+  const name = account?.name || session?.displayName || session?.username || 'You';
+  const handle = account?.username || (session?.username ? `@${session.username}` : '');
+  const bio = account?.bio || session?.bio || '';
+  const avatar = account?.avatar || '';
 
   return (
     <aside className="hidden lg:sticky lg:top-20 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:gap-4 lg:self-start lg:overflow-y-auto">
       <section className="rounded-2xl border border-gray-200 bg-white p-4">
         <Link to="/profile" className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
-            {initialsOf(name) || 'U'}
-          </span>
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="h-11 w-11 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
+              {initialsOf(name) || 'U'}
+            </span>
+          )}
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold text-gray-900">{name}</span>
             <span className="block truncate text-xs text-gray-400">{handle}</span>
           </span>
         </Link>
 
-        {session?.bio && (
-          <p className="mt-3 text-sm leading-6 text-gray-600">{session.bio}</p>
-        )}
+        {bio && <p className="mt-3 text-sm leading-6 text-gray-600">{bio}</p>}
 
         <Link
           to="/profile"

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logoImg from '../assets/U_logo.png';
 import InklingMark from './InklingMark';
 import { clearSession, loadSession } from '../api/auth';
+import { useAccount } from '../context/accountStore';
 
 export default function Navbar() {
   const location = useLocation();
@@ -11,6 +12,11 @@ export default function Navbar() {
   const menuRef = useRef(null);
   // Read once on mount: signing in navigates, which remounts the bar
   const [session] = useState(() => loadSession());
+  const account = useAccount();
+
+  const displayName = account?.name || session?.displayName || 'You';
+  const handle = account?.username || (session?.username ? `@${session.username}` : '@you');
+  const avatar = account?.avatar || '';
 
   function linkClass(path) {
     const base = 'shrink-0 whitespace-nowrap text-sm font-medium';
@@ -100,8 +106,16 @@ export default function Navbar() {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label="Account menu"
-            className="block h-9 w-9 rounded-full bg-gray-200 hover:ring-2 hover:ring-[#635BFF]/30"
-          />
+            className="block h-9 w-9 overflow-hidden rounded-full bg-gray-200 hover:ring-2 hover:ring-[#635BFF]/30"
+          >
+            {avatar ? (
+              <img src={avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-600">
+                {(displayName || 'You').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </button>
 
           {menuOpen && (
             <div
@@ -109,16 +123,16 @@ export default function Navbar() {
               className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg"
             >
               <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
-                  {(session?.displayName || 'You').charAt(0).toUpperCase()}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
+                  {avatar ? (
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    displayName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {session?.displayName || 'You'}
-                  </p>
-                  <p className="truncate text-xs text-gray-400">
-                    @{session?.username || 'you'}
-                  </p>
+                  <p className="truncate text-sm font-semibold text-gray-900">{displayName}</p>
+                  <p className="truncate text-xs text-gray-400">{handle}</p>
                 </div>
               </div>
 

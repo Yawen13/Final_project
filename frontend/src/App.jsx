@@ -14,6 +14,7 @@ import PostDetail from './pages/PostDetail';
 import UserProfile from './pages/UserProfile';
 import { PostsProvider } from './context/PostsContext';
 import { usePosts } from './context/postsStore';
+import { AccountContext } from './context/accountStore';
 import { relativeTime } from './lib/time';
 import { loadSession, saveSession } from './api/auth';
 import { clearProfileOverride, loadProfileOverride, saveProfileOverride } from './api/profile';
@@ -108,7 +109,8 @@ function AppRoutes({ session }) {
   };
 
   return (
-    <Routes>
+    <AccountContext.Provider value={profile}>
+      <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<Home />} />
@@ -185,7 +187,8 @@ function AppRoutes({ session }) {
       <Route path="/u/:username" element={<UserProfile />} />
       {/* Anything unknown (e.g. a stale link) goes back to the login page */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </AccountContext.Provider>
   );
 }
 

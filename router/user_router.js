@@ -3,7 +3,15 @@ const router = express.Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const { db } = require('../db'); 
+const { db } = require('../db');
+
+// Firestore Timestamps serialize as {_seconds, _nanoseconds}; send ISO strings
+function toIso(value) {
+  if (!value) return '';
+  if (typeof value.toDate === 'function') return value.toDate().toISOString();
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
 
 // 1. create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, '../uploads');
@@ -88,7 +96,7 @@ router.post('/auth/login', async (req, res) => {
       username: user.username,
       displayName: user.display_name,
       bio: user.bio,
-      createdAt: user.created_at
+      createdAt: toIso(user.created_at)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -111,19 +119,72 @@ router.get('/users/:username', async (req, res) => {
       user = { id: doc.id, ...doc.data() };
     });
 
+    // Follower/following counts, served with the profile so the client does
+    // not need a second request
+    const [followers, following] = await Promise.all([
+      db.collection('follows').where('following_id', '==', user.id).count().get(),
+      db.collection('follows').where('follower_id', '==', user.id).count().get()
+    ]);
+
     res.json({
       userId: user.id,
       username: user.username,
       displayName: user.display_name,
       bio: user.bio,
-      createdAt: user.created_at
+      location: user.location || '',
+      status: user.status || '',
+      profileImageUrl: user.profile_image_url || '',
+      followerCount: followers.data().count,
+      followingCount: following.data().count,
+      createdAt: toIso(user.created_at)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 4. Follow user
+// 4. Update profile fields (display name, bio, location, status, avatar URL)
+router.patch('/users/:username', async (req, res) => {
+  const { username } = req.params;
+  const { userId, displayName, bio, location, status, profileImageUrl } = req.body || {};
+
+  if (!userId) {
+    return res.status(400).json({ message: 'Missing userId in request body' });
+  }
+
+  try {
+    const snapshot = await db.collection('users').where('username', '==', username).get();
+    if (snapshot.empty) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const doc = snapshot.docs[0];
+    if (doc.id !== userId) {
+      return res.status(403).json({ message: 'You can only update your own profile' });
+    }
+
+    const updates = {};
+    if (typeof displayName === 'string' && displayName.trim()) {
+      updates.display_name = displayName.trim();
+    }
+    if (typeof bio === 'string') updates.bio = bio;
+    if (typeof location === 'string') updates.location = location;
+    if (typeof status === 'string') updates.status = status;
+    if (typeof profileImageUrl === 'string') updates.profile_image_url = profileImageUrl;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'Nothing to update' });
+    }
+    updates.updated_at = new Date();
+
+    await db.collection('users').doc(doc.id).update(updates);
+    res.json({ message: 'Profile updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Follow user
 router.post('/users/:username/follow', async (req, res) => {
   const targetUsername = req.params.username;
   const { followerId } = req.body;
@@ -165,7 +226,7 @@ router.post('/users/:username/follow', async (req, res) => {
   }
 });
 
-// 5. Unfollow user
+// 6. Unfollow user
 router.delete('/users/:username/follow', async (req, res) => {
   const targetUsername = req.params.username;
   const { followerId } = req.body;
@@ -203,7 +264,7 @@ router.delete('/users/:username/follow', async (req, res) => {
   }
 });
 
-// 6. Upload profile image 
+// 7. Upload profile image 
 router.post('/users/:username/image', upload.single('profileImage'), async (req, res) => {
   const { username } = req.params;
   const file = req.file;
@@ -220,7 +281,9 @@ router.post('/users/:username/image', upload.single('profileImage'), async (req,
     const docId = userSnapshot.docs[0].id;
 
     // construct the public URL for the uploaded image
-    const publicUrl = `http://localhost:3000/uploads/${file.filename}`;
+    // Public URL for the uploaded image — built from the live request so it
+    // works on Render (localhost:3000 only worked locally)
+    const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
 
     // make sure to serve the uploads folder statically in your server.js
     await db.collection('users').doc(docId).update({

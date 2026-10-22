@@ -28,15 +28,28 @@ function toneFor(key) {
 }
 
 function initialsFor(name) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U'
+  );
 }
 
-function Avatar({ name, className = 'h-11 w-11 text-sm' }) {
+function Avatar({ name = '', src = '', className = 'h-11 w-11 text-sm' }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className={`shrink-0 rounded-full object-cover ${className}`}
+      />
+    );
+  }
+
   return (
     <span
       className={`flex shrink-0 items-center justify-center rounded-full font-semibold ${toneFor(name)} ${className}`}
@@ -383,7 +396,10 @@ export default function Messages() {
                 {!searching &&
                   results.map((person) => (
                     <li key={person.userId} className="flex items-center gap-3 px-4 py-3">
-                      <Avatar name={person.displayName || person.username} />
+                      <Avatar
+                        name={person.displayName || person.username}
+                        src={person.profileImageUrl}
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-slate-900">
                           {person.displayName || person.username}
@@ -444,7 +460,7 @@ export default function Messages() {
                             isActive ? 'bg-[#f7f5ff]' : 'hover:bg-slate-50'
                           }`}
                         >
-                          <Avatar name={participant.name} />
+                          <Avatar name={participant.name} src={participant.avatar} />
 
                           <span className="min-w-0 flex-1">
                             <span className="flex items-baseline justify-between gap-2">
@@ -500,7 +516,11 @@ export default function Messages() {
 
                   {activeConversation && (
                     <>
-                      <Avatar name={activeConversation.participant.name} className="h-9 w-9 text-xs" />
+                      <Avatar
+                        name={activeConversation.participant.name}
+                        src={activeConversation.participant.avatar}
+                        className="h-9 w-9 text-xs"
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">{activeConversation.participant.name}</p>
                         <p className="truncate text-xs text-slate-400">{activeConversation.participant.handle}</p>

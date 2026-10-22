@@ -14,6 +14,8 @@ app.use('/api', require('./router/user_router'));
 app.use('/api', require('./router/post_router'));
 // Direct messages
 app.use('/api', require('./router/conversation_router'));
+// Image and video uploads backed by Firebase Storage
+app.use('/api', require('./router/upload_router'));
 
 app.listen(PORT, () => {
   console.log(`Backend Server running on port ${PORT}`);

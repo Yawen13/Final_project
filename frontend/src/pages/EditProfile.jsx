@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { uploadMedia } from '../api/uploads';
 
 // Edits profile details and the avatar, then returns the updated profile to the app.
 export default function EditProfilePage({ profile, onSave, onCancel }) {
   const [form, setForm] = useState(profile);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (field) => (event) => {
     setForm((current) => ({
@@ -11,9 +15,22 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onSave(form);
+    if (saving) return;
+
+    setSaving(true);
+    setError('');
+
+    try {
+      // Uploaded files become a URL; a typed URL stays as it is
+      const avatar = avatarFile ? await uploadMedia(avatarFile) : form.avatar;
+      await onSave({ ...form, avatar });
+    } catch (uploadError) {
+      setError(uploadError.message || 'Could not save your profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatarUpload = (event) => {
@@ -21,14 +38,20 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
 
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((current) => ({
-        ...current,
-        avatar: reader.result,
-      }));
-    };
-    reader.readAsDataURL(file);
+    setAvatarFile(file);
+    setForm((current) => ({
+      ...current,
+      avatar: URL.createObjectURL(file),
+    }));
+  };
+
+  const clearAvatar = () => {
+    if (form.avatar && form.avatar.startsWith('blob:')) URL.revokeObjectURL(form.avatar);
+    setAvatarFile(null);
+    setForm((current) => ({
+      ...current,
+      avatar: '',
+    }));
   };
 
   return (
@@ -67,12 +90,7 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
               {form.avatar && (
                 <button
                   type="button"
-                  onClick={() =>
-                    setForm((current) => ({
-                      ...current,
-                      avatar: '',
-                    }))
-                  }
+                  onClick={clearAvatar}
                   className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-100"
                 >
                   Remove photo
@@ -138,16 +156,24 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
               id="avatar"
               type="url"
               value={form.avatar || ''}
-              onChange={(event) =>
+              onChange={(event) => {
+                // A typed URL replaces any file that was picked earlier
+                setAvatarFile(null);
                 setForm((current) => ({
                   ...current,
                   avatar: event.target.value,
-                }))
-              }
+                }));
+              }}
               placeholder="https://example.com/profile.jpg"
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-[#635BFF] focus:bg-white"
             />
           </div>
+
+          {error && (
+            <p role="alert" className="text-sm font-medium text-red-600">
+              {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button
@@ -159,9 +185,10 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
             </button>
             <button
               type="submit"
-              className="flex-1 rounded-full bg-[#635BFF] px-4 py-3 font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5249ea] hover:shadow-lg"
+              disabled={saving}
+              className="flex-1 rounded-full bg-[#635BFF] px-4 py-3 font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5249ea] hover:shadow-lg disabled:cursor-default disabled:opacity-60"
             >
-              Save
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>

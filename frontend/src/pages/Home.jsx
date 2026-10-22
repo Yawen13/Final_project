@@ -6,6 +6,7 @@ import PostSkeleton from '../Components/PostSkeleton';
 import HomeSidebar from '../Components/HomeSidebar';
 import { usePosts } from '../context/postsStore';
 import { loadSession } from '../api/auth';
+import { uploadMedia } from '../api/uploads';
 import { timeValue } from '../lib/time';
 
 const SORTS = [
@@ -36,8 +37,11 @@ export default function Home() {
   const { posts, addPost, loading, error, refresh, countNewPosts } = usePosts();
   const [user] = useState(currentUser);
   const [draft, setDraft] = useState('');
+  const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState('');
   const [mediaType, setMediaType] = useState(''); // 'image' | 'video'
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState('');
   const [sort, setSort] = useState('latest');
   const [pendingCount, setPendingCount] = useState(0);
   const fileInputRef = useRef(null);
@@ -77,16 +81,15 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isVideo = file.type.startsWith('video/');
-    const reader = new FileReader();
-    reader.onload = () => {
-      setMediaPreview(reader.result);
-      setMediaType(isVideo ? 'video' : 'image');
-    };
-    reader.readAsDataURL(file);
+    setPostError('');
+    setMediaFile(file);
+    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
+    setMediaPreview(URL.createObjectURL(file));
   }
 
   function removeMedia() {
+    if (mediaPreview.startsWith('blob:')) URL.revokeObjectURL(mediaPreview);
+    setMediaFile(null);
     setMediaPreview('');
     setMediaType('');
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -94,20 +97,35 @@ export default function Home() {
 
   async function handlePost(e) {
     e.preventDefault();
-    if (!draft.trim() && !mediaPreview) return;
+    if ((!draft.trim() && !mediaFile) || posting) return;
 
-    // addPost resolves null when the server rejects it; keep the draft then
-    const created = await addPost({
-      ...user,
-      text: draft.trim(),
-      image: mediaType === 'image' ? mediaPreview : '',
-      video: mediaType === 'video' ? mediaPreview : '',
-    });
-    if (!created) return;
+    setPosting(true);
+    setPostError('');
 
-    setDraft('');
-    setPendingCount(0);
-    removeMedia();
+    try {
+      // Files go to storage first; the post itself only carries the URL
+      const mediaUrl = mediaFile ? await uploadMedia(mediaFile) : '';
+
+      const created = await addPost({
+        ...user,
+        text: draft.trim(),
+        image: mediaType === 'image' ? mediaUrl : '',
+        video: mediaType === 'video' ? mediaUrl : '',
+      });
+
+      if (!created) {
+        setPostError('Could not publish the post. Try again.');
+        return;
+      }
+
+      setDraft('');
+      setPendingCount(0);
+      removeMedia();
+    } catch (error) {
+      setPostError(error.message || 'Could not upload that file.');
+    } finally {
+      setPosting(false);
+    }
   }
 
   async function showNewPosts() {
@@ -165,6 +183,12 @@ export default function Home() {
               </div>
             )}
 
+            {postError && (
+              <p role="alert" className="mt-3 text-sm font-medium text-red-600">
+                {postError}
+              </p>
+            )}
+
             <div className="mt-3 flex items-center justify-between">
               <label className="flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50">
                 <input
@@ -179,10 +203,10 @@ export default function Home() {
 
               <button
                 type="submit"
-                disabled={!draft.trim() && !mediaPreview}
+                disabled={(!draft.trim() && !mediaFile) || posting}
                 className="rounded-full bg-[#635BFF] px-6 py-2 font-medium text-white transition-colors hover:bg-[#5249ea] disabled:cursor-default disabled:opacity-50"
               >
-                Post
+                {posting ? 'Posting…' : 'Post'}
               </button>
             </div>
           </form>

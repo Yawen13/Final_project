@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Navbar from './Navbar';
+import { uploadMedia } from '../api/uploads';
 
 function MoreIcon({ className = 'h-4 w-4' }) {
   return (
@@ -56,7 +57,10 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [newPostText, setNewPostText] = useState('');
-  const [newPostImage, setNewPostImage] = useState('');
+  const [newPostFile, setNewPostFile] = useState(null);
+  const [newPostPreview, setNewPostPreview] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const [composerError, setComposerError] = useState('');
 
   const startEdit = (post) => {
     setEditingId(post.id);
@@ -77,24 +81,42 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') setNewPostImage(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setComposerError('');
+    setNewPostFile(file);
+    setNewPostPreview(URL.createObjectURL(file));
+  };
+
+  const clearNewPostImage = () => {
+    if (newPostPreview.startsWith('blob:')) URL.revokeObjectURL(newPostPreview);
+    setNewPostFile(null);
+    setNewPostPreview('');
   };
 
   const publishPost = async (event) => {
     event.preventDefault();
     const text = newPostText.trim();
-    if (!text && !newPostImage) return;
+    if ((!text && !newPostFile) || publishing) return;
 
-    const created = await onCreatePost(text, newPostImage);
-    if (!created) return;
+    setPublishing(true);
+    setComposerError('');
 
-    setNewPostText('');
-    setNewPostImage('');
-    setIsComposerOpen(false);
+    try {
+      const image = newPostFile ? await uploadMedia(newPostFile) : '';
+      const created = await onCreatePost(text, image);
+
+      if (!created) {
+        setComposerError('Could not publish the post. Try again.');
+        return;
+      }
+
+      setNewPostText('');
+      clearNewPostImage();
+      setIsComposerOpen(false);
+    } catch (error) {
+      setComposerError(error.message || 'Could not upload that image.');
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -369,17 +391,23 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
                 className="w-full resize-y rounded-xl border border-slate-200 px-3 py-3 text-[15px] leading-6 text-slate-800 outline-none placeholder:text-slate-400 focus:border-[#635BFF]"
               />
 
-              {newPostImage && (
+              {newPostPreview && (
                 <div className="relative mt-3">
-                  <img src={newPostImage} alt="Selected post attachment" className="max-h-64 w-full rounded-xl object-cover" />
+                  <img src={newPostPreview} alt="Selected post attachment" className="max-h-64 w-full rounded-xl object-cover" />
                   <button
                     type="button"
-                    onClick={() => setNewPostImage('')}
+                    onClick={clearNewPostImage}
                     className="absolute right-2 top-2 rounded-full bg-slate-950/70 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-950"
                   >
                     Remove image
                   </button>
                 </div>
+              )}
+
+              {composerError && (
+                <p role="alert" className="mt-3 text-sm font-medium text-red-600">
+                  {composerError}
+                </p>
               )}
 
               <div className="mt-4 flex items-center justify-between gap-3">
@@ -413,10 +441,10 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
                   </button>
                   <button
                     type="submit"
-                    disabled={!newPostText.trim() && !newPostImage}
+                    disabled={(!newPostText.trim() && !newPostFile) || publishing}
                     className="rounded-full bg-[#4F46E5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4338CA] disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Post
+                    {publishing ? 'Posting…' : 'Post'}
                   </button>
                 </div>
               </div>

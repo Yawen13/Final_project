@@ -4,7 +4,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Explore from './pages/Explore';
 import Inkling from './pages/Inkling';
-import ProfileScreen from './components/ProfileScreen';
+import ProfileScreen from './Components/ProfileScreen';
 import EditProfilePage from './pages/EditProfile';
 import BookmarkPage from './pages/Bookmark';
 import CommunityPage from './pages/Community';

@@ -23,7 +23,7 @@ function Avatar({ name = '' }) {
 
 function PostCard({ post }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm">
+    <div className="mb-4 flex break-inside-avoid flex-col gap-3 rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm">
       <div className="flex items-center gap-2">
         <Avatar name={post.authorName} />
         <div className="min-w-0">
@@ -33,9 +33,9 @@ function PostCard({ post }) {
           </p>
         </div>
       </div>
-      <p className="line-clamp-4 text-sm text-gray-700">{post.text}</p>
+      <p className="line-clamp-6 text-sm leading-6 text-gray-700">{post.text}</p>
       {post.image && (
-        <img src={post.image} alt="" className="max-h-56 w-full rounded-xl object-cover" />
+        <img src={post.image} alt="" className="max-h-64 w-full rounded-xl object-cover" />
       )}
     </div>
   );
@@ -88,7 +88,7 @@ export default function Explore() {
           ))}
         </div>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="columns-1 gap-4 sm:columns-2 lg:columns-3">
           {visiblePosts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}

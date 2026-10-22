@@ -6,7 +6,7 @@ import PostSkeleton from '../Components/PostSkeleton';
 import HomeSidebar from '../Components/HomeSidebar';
 import { usePosts } from '../context/postsStore';
 import { loadSession } from '../api/auth';
-import { uploadMedia } from '../api/uploads';
+import { prepareMedia } from '../api/media';
 import { timeValue } from '../lib/time';
 
 const SORTS = [
@@ -39,7 +39,6 @@ export default function Home() {
   const [draft, setDraft] = useState('');
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState('');
-  const [mediaType, setMediaType] = useState(''); // 'image' | 'video'
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState('');
   const [sort, setSort] = useState('latest');
@@ -82,8 +81,13 @@ export default function Home() {
     if (!file) return;
 
     setPostError('');
+    if (!file.type.startsWith('image/')) {
+      setPostError('Only images can be posted right now.');
+      e.target.value = '';
+      return;
+    }
+
     setMediaFile(file);
-    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
     setMediaPreview(URL.createObjectURL(file));
   }
 
@@ -91,7 +95,6 @@ export default function Home() {
     if (mediaPreview.startsWith('blob:')) URL.revokeObjectURL(mediaPreview);
     setMediaFile(null);
     setMediaPreview('');
-    setMediaType('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -103,14 +106,14 @@ export default function Home() {
     setPostError('');
 
     try {
-      // Files go to storage first; the post itself only carries the URL
-      const mediaUrl = mediaFile ? await uploadMedia(mediaFile) : '';
+      // The backend stores the image as a Base64 string on the post
+      const image = mediaFile ? await prepareMedia(mediaFile) : '';
 
       const created = await addPost({
         ...user,
         text: draft.trim(),
-        image: mediaType === 'image' ? mediaUrl : '',
-        video: mediaType === 'video' ? mediaUrl : '',
+        image,
+        video: '',
       });
 
       if (!created) {
@@ -122,7 +125,7 @@ export default function Home() {
       setPendingCount(0);
       removeMedia();
     } catch (error) {
-      setPostError(error.message || 'Could not upload that file.');
+      setPostError(error.message || 'Could not prepare that image.');
     } finally {
       setPosting(false);
     }
@@ -168,11 +171,7 @@ export default function Home() {
 
             {mediaPreview && (
               <div className="relative mt-3">
-                {mediaType === 'video' ? (
-                  <video src={mediaPreview} controls className="max-h-72 w-full rounded-2xl" />
-                ) : (
-                  <img src={mediaPreview} alt="" className="max-h-72 w-full rounded-2xl object-cover" />
-                )}
+                <img src={mediaPreview} alt="" className="max-h-72 w-full rounded-2xl object-cover" />
                 <button
                   type="button"
                   onClick={removeMedia}
@@ -194,11 +193,11 @@ export default function Home() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   onChange={handleMediaChange}
                   className="hidden"
                 />
-                Add photo / video
+                Add photo
               </label>
 
               <button

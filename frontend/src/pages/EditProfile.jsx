@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { uploadMedia } from '../api/uploads';
+import { prepareMedia } from '../api/media';
 
 // Edits profile details and the avatar, then returns the updated profile to the app.
 export default function EditProfilePage({ profile, onSave, onCancel }) {
@@ -23,8 +23,10 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
     setError('');
 
     try {
-      // Uploaded files become a URL; a typed URL stays as it is
-      const avatar = avatarFile ? await uploadMedia(avatarFile) : form.avatar;
+      // Avatars are small, so cap them well below the post image size
+      const avatar = avatarFile
+        ? await prepareMedia(avatarFile, { maxDimension: 512, maxBytes: 200000 })
+        : form.avatar;
       await onSave({ ...form, avatar });
     } catch (uploadError) {
       setError(uploadError.message || 'Could not save your profile.');

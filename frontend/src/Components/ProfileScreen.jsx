@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Navbar from './Navbar';
-import { uploadMedia } from '../api/uploads';
+import { prepareMedia } from '../api/media';
 
 function MoreIcon({ className = 'h-4 w-4' }) {
   return (
@@ -101,7 +101,7 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
     setComposerError('');
 
     try {
-      const image = newPostFile ? await uploadMedia(newPostFile) : '';
+      const image = newPostFile ? await prepareMedia(newPostFile) : '';
       const created = await onCreatePost(text, image);
 
       if (!created) {

@@ -1,0 +1,3 @@
+# Claude Code design-plugin cache — per-machine session state (absolute paths,
+# session ids), not project code. Nothing in the app reads it.
+.impeccable/

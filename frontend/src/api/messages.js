@@ -1,138 +1,132 @@
-import { messagesUseApi, request } from './client';
+import { hasBackend, request } from './client';
 
 // Data access for the Messages page.
 //
-// The UI only ever calls the functions at the bottom of this file, so wiring up
-// the real backend means implementing these four endpoints — nothing in
-// Messages.jsx has to change.
+// Backend endpoints:
 //
-//   GET  {base}/conversations                        → Conversation[]
-//   GET  {base}/conversations/:id/messages?limit=50  → Message[]   (oldest → newest)
-//   POST {base}/conversations/:id/messages { text }  → Message     (the created row)
-//   POST {base}/conversations/:id/read               → 204
+//   GET  {base}/conversations?userId=                  → Conversation[]
+//   POST {base}/conversations { userId, participantId } → Conversation
+//   GET  {base}/conversations/:id/messages?userId=&limit= → Message[]
+//   POST {base}/conversations/:id/messages { userId, text } → Message
+//   POST {base}/conversations/:id/read { userId }      → { message }
 //
-// Expected JSON shapes:
+// Expected shapes:
 //
 //   Conversation {
-//     id: string,
-//     participant: { id: string, name: string, handle: string, avatar: string | '' },
-//     lastMessage: { text: string, sentAt: string },   // sentAt is ISO 8601
-//     unreadCount: number,
+//     id, participant: { id, name, handle, avatar },
+//     lastMessage: { text, sentAt }, unreadCount,
 //   }
 //
-//   Message {
-//     id: string,
-//     conversationId: string,
-//     senderId: string,        // CURRENT_USER_ID for the logged-in user
-//     text: string,
-//     sentAt: string,          // ISO 8601
-//   }
+//   Message { id, conversationId, senderId, text, sentAt }
 //
-// Set VITE_API_BASE_URL in .env.local to talk to a real server — see
-// .env.example and src/api/client.js. With it unset every call resolves from
-// the placeholder store below, so the page works before the backend exists.
+// When the backend predates these routes the first request answers 404 and
+// this module keeps everything in memory for the rest of the session.
 
 export const CURRENT_USER_ID = 'me';
 
-const USE_PLACEHOLDER = !messagesUseApi;
+let apiAvailable = hasBackend;
+let warnedAboutFallback = false;
 
-// ---------------------------------------------------------------------------
-// Placeholder store — stands in for the database until the endpoints exist.
-// ---------------------------------------------------------------------------
+function shouldUseLocal(error) {
+  if (error && error.status === 404 && apiAvailable) {
+    apiAvailable = false;
+    if (!warnedAboutFallback) {
+      warnedAboutFallback = true;
+      console.warn(
+        '[messages] The messages API is not deployed yet — messages stay in this browser.',
+      );
+    }
+    return true;
+  }
+  return !apiAvailable;
+}
 
-const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
-
-let placeholderConversations = [
-  {
-    id: 'c1',
-    participant: { id: 'u-maya', name: 'Maya Chen', handle: '@mayachen', avatar: '' },
-    lastMessage: { text: "Sent the second half — the ending still isn't landing.", sentAt: minutesAgo(12) },
-    unreadCount: 2,
-  },
-  {
-    id: 'c2',
-    participant: { id: 'u-daniel', name: 'Daniel Ortiz', handle: '@danielortiz', avatar: '' },
-    lastMessage: { text: 'Ha, I knew you would catch the timeline problem.', sentAt: minutesAgo(190) },
-    unreadCount: 0,
-  },
-  {
-    id: 'c3',
-    participant: { id: 'u-priya', name: 'Priya Nair', handle: '@priyanair', avatar: '' },
-    lastMessage: { text: 'Kept the second stanza. Everything after it is negotiable.', sentAt: minutesAgo(1500) },
-    unreadCount: 1,
-  },
-  {
-    id: 'c4',
-    participant: { id: 'u-leo', name: 'Leo Fischer', handle: '@leofischer', avatar: '' },
-    lastMessage: { text: 'Scene 4 rewrite is up. Cutting the voiceover helped.', sentAt: minutesAgo(2900) },
-    unreadCount: 0,
-  },
-];
-
-let placeholderMessages = {
-  c1: [
-    { id: 'm1', conversationId: 'c1', senderId: 'u-maya', text: 'Okay, the draft is finally out of my head and on the page.', sentAt: minutesAgo(1400) },
-    { id: 'm2', conversationId: 'c1', senderId: CURRENT_USER_ID, text: 'Read it twice. The middle section is doing the most work — I would not touch it.', sentAt: minutesAgo(1380) },
-    { id: 'm3', conversationId: 'c1', senderId: 'u-maya', text: 'That is the part I was most unsure about, so that helps.', sentAt: minutesAgo(90) },
-    { id: 'm4', conversationId: 'c1', senderId: 'u-maya', text: "Sent the second half — the ending still isn't landing.", sentAt: minutesAgo(12) },
-  ],
-  c2: [
-    { id: 'm5', conversationId: 'c2', senderId: 'u-daniel', text: 'Where does chapter three sit for you? I think it jumps.', sentAt: minutesAgo(240) },
-    { id: 'm6', conversationId: 'c2', senderId: CURRENT_USER_ID, text: 'It jumps because the letter arrives before we care about the sender.', sentAt: minutesAgo(205) },
-    { id: 'm7', conversationId: 'c2', senderId: 'u-daniel', text: 'Ha, I knew you would catch the timeline problem.', sentAt: minutesAgo(190) },
-  ],
-  c3: [
-    { id: 'm8', conversationId: 'c3', senderId: 'u-priya', text: 'the kettle hums / and I forget, for a second, / what I was mourning', sentAt: minutesAgo(1600) },
-    { id: 'm9', conversationId: 'c3', senderId: CURRENT_USER_ID, text: 'The turn on "for a second" is the whole poem. Do not explain it.', sentAt: minutesAgo(1560) },
-    { id: 'm10', conversationId: 'c3', senderId: 'u-priya', text: 'Kept the second stanza. Everything after it is negotiable.', sentAt: minutesAgo(1500) },
-  ],
-  c4: [
-    { id: 'm11', conversationId: 'c4', senderId: 'u-leo', text: 'Scene 4 rewrite is up. Cutting the voiceover helped.', sentAt: minutesAgo(2900) },
-  ],
-};
+// Empty placeholder store, used only when the API is missing.
+let placeholderConversations = [];
+let placeholderMessages = {};
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+const nowIso = () => new Date().toISOString();
 
 /** Conversations for the current user, most recently active first. */
-export async function listConversations() {
-  if (!USE_PLACEHOLDER) return request('/conversations');
+export async function listConversations(userId) {
+  if (apiAvailable) {
+    try {
+      return await request(`/conversations?userId=${encodeURIComponent(userId || '')}`);
+    } catch (error) {
+      if (!shouldUseLocal(error)) throw error;
+    }
+  }
 
-  await delay(260);
+  await delay(120);
   return placeholderConversations.map((conversation) => ({ ...conversation }));
 }
 
-/** One conversation's messages, oldest first. */
-export async function listMessages(conversationId, { limit = 50 } = {}) {
-  if (!USE_PLACEHOLDER) {
-    return request(`/conversations/${encodeURIComponent(conversationId)}/messages?limit=${limit}`);
-  }
-
-  await delay(200);
-  return (placeholderMessages[conversationId] ?? []).slice(-limit).map((message) => ({ ...message }));
-}
-
-/** Sends a message and resolves with the stored row. */
-export async function sendMessage(conversationId, text) {
-  const body = text.trim();
-
-  if (!USE_PLACEHOLDER) {
-    return request(`/conversations/${encodeURIComponent(conversationId)}/messages`, {
+/** Gets or creates the 1:1 conversation with `participant`. */
+export async function startConversation({ userId, participant }) {
+  if (apiAvailable) {
+    return request('/conversations', {
       method: 'POST',
-      body: JSON.stringify({ text: body }),
+      body: JSON.stringify({ userId, participantId: participant.id }),
     });
   }
 
-  await delay(180);
+  const existing = placeholderConversations.find(
+    (conversation) => conversation.participant.id === participant.id,
+  );
+  if (existing) return { ...existing };
+
+  const conversation = {
+    id: `local-${Date.now()}`,
+    participant: {
+      id: participant.id,
+      name: participant.name,
+      handle: participant.handle,
+      avatar: participant.avatar || '',
+    },
+    lastMessage: { text: '', sentAt: nowIso() },
+    unreadCount: 0,
+  };
+
+  placeholderConversations = [conversation, ...placeholderConversations];
+  placeholderMessages = { ...placeholderMessages, [conversation.id]: [] };
+  return { ...conversation };
+}
+
+/** One conversation's messages, oldest first. */
+export async function listMessages(conversationId, { limit = 50, userId } = {}) {
+  if (apiAvailable) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (userId) params.set('userId', userId);
+    return request(
+      `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+    );
+  }
+
+  await delay(120);
+  return (placeholderMessages[conversationId] ?? [])
+    .slice(-limit)
+    .map((message) => ({ ...message }));
+}
+
+/** Sends a message and resolves with the stored row. */
+export async function sendMessage(conversationId, text, userId) {
+  const body = text.trim();
+
+  if (apiAvailable) {
+    return request(`/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ userId, text: body }),
+    });
+  }
+
+  await delay(120);
   const message = {
     id: `local-${Date.now()}`,
     conversationId,
-    senderId: CURRENT_USER_ID,
+    senderId: userId || CURRENT_USER_ID,
     text: body,
-    sentAt: new Date().toISOString(),
+    sentAt: nowIso(),
   };
 
   placeholderMessages = {
@@ -149,9 +143,12 @@ export async function sendMessage(conversationId, text) {
 }
 
 /** Clears the unread badge for a conversation. */
-export async function markConversationRead(conversationId) {
-  if (!USE_PLACEHOLDER) {
-    return request(`/conversations/${encodeURIComponent(conversationId)}/read`, { method: 'POST' });
+export async function markConversationRead(conversationId, userId) {
+  if (apiAvailable) {
+    return request(`/conversations/${encodeURIComponent(conversationId)}/read`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
   }
 
   placeholderConversations = placeholderConversations.map((conversation) =>
@@ -159,6 +156,3 @@ export async function markConversationRead(conversationId) {
   );
   return null;
 }
-
-/** True while the page is running on the placeholder store, not a real server. */
-export const usingPlaceholderData = USE_PLACEHOLDER;

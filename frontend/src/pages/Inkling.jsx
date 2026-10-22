@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Navbar from '../Components/Navbar';
 import InklingMark from '../Components/InklingMark';
 import './Inkling.css';

@@ -53,7 +53,7 @@ export default function EditProfilePage({ profile, onSave, onCancel }) {
                 <img src={form.avatar} alt="Profile preview" className="h-24 w-24 object-cover" />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center bg-[#4E4C61] text-2xl font-bold text-white">
-                  {form.name?.slice(0, 2).toUpperCase() || 'JD'}
+                  {form.name?.slice(0, 2).toUpperCase() || 'U'}
                 </div>
               )}
             </div>

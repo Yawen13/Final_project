@@ -27,6 +27,8 @@ function toSession(user) {
     username,
     displayName: user.displayName ?? username,
     bio: user.bio ?? '',
+    // Login echoes created_at back; the register response does not
+    createdAt: user.createdAt ?? '',
   };
 }
 

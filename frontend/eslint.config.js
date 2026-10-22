@@ -19,8 +19,8 @@ export default defineConfig([
     },
   },
   {
-    // The Vite config runs in Node, not the browser
-    files: ['vite.config.js'],
+    // Vite config and Vercel functions run in Node/edge, not the browser
+    files: ['vite.config.js', 'api/**/*.js'],
     languageOptions: { globals: globals.node },
   },
 ])

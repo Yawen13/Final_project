@@ -24,21 +24,32 @@ import { hasBackend, request } from './client';
 
 export const CURRENT_USER_ID = 'me';
 
+const backendConfigured = hasBackend;
 let apiAvailable = hasBackend;
-let warnedAboutFallback = false;
+let warnedAboutMissing = false;
 
-function shouldUseLocal(error) {
-  if (error && error.status === 404 && apiAvailable) {
+// A 404 means the backend predates these routes. Unlike posts, there is no
+// useful local fallback: a message written here would never reach anyone. So
+// stop pretending the feature works and let the UI say so.
+function markMissing(error) {
+  if (error && error.status === 404 && backendConfigured && apiAvailable) {
     apiAvailable = false;
-    if (!warnedAboutFallback) {
-      warnedAboutFallback = true;
-      console.warn(
-        '[messages] The messages API is not deployed yet — messages stay in this browser.',
-      );
+    if (!warnedAboutMissing) {
+      warnedAboutMissing = true;
+      console.warn('[messages] The messages API is not deployed yet.');
     }
     return true;
   }
-  return !apiAvailable;
+  return false;
+}
+
+/** True when a backend is configured but its messages routes are missing. */
+export function messagesApiMissing() {
+  return backendConfigured && !apiAvailable;
+}
+
+function unavailable() {
+  return new Error('Messaging is not available yet.');
 }
 
 // Empty placeholder store, used only when the API is missing.
@@ -54,9 +65,12 @@ export async function listConversations(userId) {
     try {
       return await request(`/conversations?userId=${encodeURIComponent(userId || '')}`);
     } catch (error) {
-      if (!shouldUseLocal(error)) throw error;
+      if (markMissing(error)) return [];
+      throw error;
     }
   }
+
+  if (backendConfigured) return [];
 
   await delay(120);
   return placeholderConversations.map((conversation) => ({ ...conversation }));
@@ -65,11 +79,18 @@ export async function listConversations(userId) {
 /** Gets or creates the 1:1 conversation with `participant`. */
 export async function startConversation({ userId, participant }) {
   if (apiAvailable) {
-    return request('/conversations', {
-      method: 'POST',
-      body: JSON.stringify({ userId, participantId: participant.id }),
-    });
+    try {
+      return await request('/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ userId, participantId: participant.id }),
+      });
+    } catch (error) {
+      if (markMissing(error)) throw unavailable();
+      throw error;
+    }
   }
+
+  if (backendConfigured) throw unavailable();
 
   const existing = placeholderConversations.find(
     (conversation) => conversation.participant.id === participant.id,
@@ -98,10 +119,18 @@ export async function listMessages(conversationId, { limit = 50, userId } = {}) 
   if (apiAvailable) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (userId) params.set('userId', userId);
-    return request(
-      `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
-    );
+
+    try {
+      return await request(
+        `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+      );
+    } catch (error) {
+      if (markMissing(error)) return [];
+      throw error;
+    }
   }
+
+  if (backendConfigured) return [];
 
   await delay(120);
   return (placeholderMessages[conversationId] ?? [])
@@ -114,11 +143,18 @@ export async function sendMessage(conversationId, text, userId) {
   const body = text.trim();
 
   if (apiAvailable) {
-    return request(`/conversations/${encodeURIComponent(conversationId)}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ userId, text: body }),
-    });
+    try {
+      return await request(`/conversations/${encodeURIComponent(conversationId)}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, text: body }),
+      });
+    } catch (error) {
+      if (markMissing(error)) throw unavailable();
+      throw error;
+    }
   }
+
+  if (backendConfigured) throw unavailable();
 
   await delay(120);
   const message = {
@@ -145,11 +181,18 @@ export async function sendMessage(conversationId, text, userId) {
 /** Clears the unread badge for a conversation. */
 export async function markConversationRead(conversationId, userId) {
   if (apiAvailable) {
-    return request(`/conversations/${encodeURIComponent(conversationId)}/read`, {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    });
+    try {
+      return await request(`/conversations/${encodeURIComponent(conversationId)}/read`, {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      });
+    } catch (error) {
+      if (markMissing(error)) return null;
+      throw error;
+    }
   }
+
+  if (backendConfigured) return null;
 
   placeholderConversations = placeholderConversations.map((conversation) =>
     conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,

@@ -6,6 +6,7 @@ import {
   listConversations,
   listMessages,
   markConversationRead,
+  messagesApiMissing,
   sendMessage,
   startConversation,
 } from '../api/messages';
@@ -140,6 +141,7 @@ export default function Messages() {
   const [search, setSearch] = useState('');
   const [searchResult, setSearchResult] = useState({ query: '', rows: [], done: true });
   const [startingId, setStartingId] = useState('');
+  const [apiMissing, setApiMissing] = useState(() => messagesApiMissing());
 
   const threadRef = useRef(null);
 
@@ -157,9 +159,12 @@ export default function Messages() {
         if (cancelled) return;
         setConversations(rows);
         setListState('ready');
+        setApiMissing(messagesApiMissing());
       })
       .catch(() => {
-        if (!cancelled) setListState('error');
+        if (cancelled) return;
+        setApiMissing(messagesApiMissing());
+        setListState('error');
       });
 
     return () => {
@@ -324,14 +329,17 @@ export default function Messages() {
             : conversation,
         ),
       );
-    } catch {
+    } catch (error) {
       // Hand the words back rather than losing them.
       setThread((current) => ({
         ...current,
         messages: current.messages.filter((message) => message.id !== optimistic.id),
       }));
       setDraft(text);
-      setSendError({ conversationId, message: 'That message did not send.' });
+      setSendError({
+        conversationId,
+        message: error.message || 'That message did not send.',
+      });
     } finally {
       setSending(false);
     }
@@ -362,6 +370,16 @@ export default function Messages() {
         <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">Messages</h1>
         <p className="mt-1 text-sm text-slate-500">Conversations about work that is not finished yet.</p>
 
+        {apiMissing && (
+          <div
+            role="status"
+            className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            Messaging is not available yet. The message service has not been deployed, so
+            search and sending are disabled.
+          </div>
+        )}
+
         <div className="mt-6 grid gap-4 lg:h-[calc(100vh-15rem)] lg:grid-cols-[minmax(280px,340px)_1fr]">
           <section
             aria-label="Conversations"
@@ -390,7 +408,9 @@ export default function Messages() {
                 )}
 
                 {!searching && results.length === 0 && (
-                  <li className="px-4 py-4 text-sm text-slate-400">No people found.</li>
+                  <li className="px-4 py-4 text-sm text-slate-400">
+                    {apiMissing ? 'Search is not available yet.' : 'No people found.'}
+                  </li>
                 )}
 
                 {!searching &&
@@ -442,7 +462,9 @@ export default function Messages() {
                   <div className="px-6 py-12 text-center">
                     <p className="text-sm font-medium text-slate-700">No conversations yet.</p>
                     <p className="mt-2 text-sm text-slate-500">
-                      Search for someone above to start a conversation.
+                      {apiMissing
+                        ? 'Conversations will appear here once the message service is deployed.'
+                        : 'Search for someone above to start a conversation.'}
                     </p>
                   </div>
                 )}

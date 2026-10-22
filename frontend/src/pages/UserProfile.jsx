@@ -27,6 +27,7 @@ export default function UserProfile() {
   const [posts, setPosts] = useState([]);
   const [state, setState] = useState('loading');
   const [starting, setStarting] = useState(false);
+  const [messageError, setMessageError] = useState('');
 
   const isMe =
     Boolean(session?.username) &&
@@ -67,6 +68,7 @@ export default function UserProfile() {
     if (!user) return;
 
     setStarting(true);
+    setMessageError('');
     try {
       const conversation = await startConversation({
         userId: session.id,
@@ -80,6 +82,7 @@ export default function UserProfile() {
       navigate(`/messages/${conversation.id}`);
     } catch (error) {
       console.error('[messages] Could not start the conversation', error);
+      setMessageError(error.message || 'Could not start the conversation.');
     } finally {
       setStarting(false);
     }
@@ -162,6 +165,12 @@ export default function UserProfile() {
                     </button>
                   )}
                 </div>
+
+                {messageError && (
+                  <p role="alert" className="mt-3 text-right text-sm font-medium text-red-600">
+                    {messageError}
+                  </p>
+                )}
 
                 <h1 className="mt-4 text-2xl font-bold tracking-tight">{displayName}</h1>
                 <p className="text-sm text-slate-500">@{user.username}</p>

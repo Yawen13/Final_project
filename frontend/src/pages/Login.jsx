@@ -234,7 +234,7 @@ export default function Login() {
             <div>
               <input
                 type="text"
-                placeholder={isSignUp ? "Username" : "Email or username"}
+                placeholder="Username"
                 value={account}
                 onChange={(e) => setAccount(e.target.value)}
                 className="w-full rounded-full border border-gray-300 px-5 py-3 text-gray-900 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"

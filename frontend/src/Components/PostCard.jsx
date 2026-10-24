@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePosts } from '../context/postsStore';
+import { relativeTime } from '../lib/time';
 
 function CommentIcon(props) {
   return (
@@ -131,6 +132,7 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
   const profilePath = post.authorHandle
     ? `/u/${encodeURIComponent(post.authorHandle.replace(/^@/, ''))}`
     : '';
+  const time = relativeTime(post.createdAt);
 
   return (
     <article className="border-b border-gray-100 px-4 py-4">
@@ -153,6 +155,14 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
                   <span className="font-semibold text-gray-900">{post.authorName}</span>
                   <span className="text-sm text-gray-400">{post.authorHandle}</span>
                 </>
+              )}
+              {time && (
+                <span
+                  className="shrink-0 text-sm text-gray-400"
+                  title={new Date(post.createdAt).toLocaleString()}
+                >
+                  · {time}
+                </span>
               )}
             </div>
 

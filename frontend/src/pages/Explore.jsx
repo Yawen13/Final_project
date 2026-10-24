@@ -2,10 +2,12 @@ import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import { usePosts } from '../context/postsStore';
+import { useAccount } from '../context/accountStore';
 import { relativeTime } from '../lib/time';
+import { useAvatar, usernameFromHandle } from '../lib/avatars';
 import { hashtagsFrom } from '../lib/tags';
 
-function Avatar({ name = '' }) {
+function Avatar({ name = '', src = '' }) {
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -15,17 +17,28 @@ function Avatar({ name = '' }) {
     .toUpperCase();
 
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-xs font-semibold text-[#635BFF]">
-      {initials || 'U'}
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#635BFF]/10 text-xs font-semibold text-[#635BFF]">
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials || 'U'
+      )}
     </div>
   );
 }
 
 function PostCard({ post }) {
+  const account = useAccount();
+  const resolvedAvatar = useAvatar(post.authorHandle);
+  const isOwnPost =
+    Boolean(account?.username) &&
+    usernameFromHandle(post.authorHandle).toLowerCase() === account.username.toLowerCase();
+  const avatar = isOwnPost ? account.avatar || resolvedAvatar : resolvedAvatar;
+
   return (
     <div className="mb-4 flex break-inside-avoid flex-col gap-3 rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm">
       <div className="flex items-center gap-2">
-        <Avatar name={post.authorName} />
+        <Avatar name={post.authorName} src={avatar} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-gray-900">{post.authorName}</p>
           <p className="truncate text-xs text-gray-400">

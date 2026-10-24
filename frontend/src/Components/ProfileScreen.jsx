@@ -229,9 +229,17 @@ export default function ProfileScreen({ profile, posts, bookmarks, onEdit, onCre
                 }
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4E4C61] text-xs font-bold text-white">
-                    {initialsOf(profile.name) || 'U'}
-                  </div>
+                  {profile.avatar ? (
+                    <img
+                      src={profile.avatar}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4E4C61] text-xs font-bold text-white">
+                      {initialsOf(profile.name) || 'U'}
+                    </div>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">

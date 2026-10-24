@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePosts } from '../context/postsStore';
+import { useAccount } from '../context/accountStore';
 import { relativeTime } from '../lib/time';
+import { useAvatar, usernameFromHandle } from '../lib/avatars';
 
 function CommentIcon(props) {
   return (
@@ -93,17 +95,23 @@ function formatCount(n) {
   return `${n}`;
 }
 
-function Avatar({ name }) {
+function Avatar({ name = '', src = '' }) {
   const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
-      {initials}
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#635BFF]/10 text-sm font-semibold text-[#635BFF]">
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
 
 export default function PostCard({ post, isOwner = false, linkToPost = false, commentsOpen = false }) {
   const { toggleLike, toggleRepost, toggleBookmark, addComment, deletePost, editPost } = usePosts();
+  const account = useAccount();
+  const resolvedAvatar = useAvatar(post.authorHandle);
   const [showComments, setShowComments] = useState(commentsOpen);
   const [commentDraft, setCommentDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -133,11 +141,16 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
     ? `/u/${encodeURIComponent(post.authorHandle.replace(/^@/, ''))}`
     : '';
   const time = relativeTime(post.createdAt);
+  const isOwnPost =
+    Boolean(account?.username) &&
+    usernameFromHandle(post.authorHandle).toLowerCase() === account.username.toLowerCase();
+  // The account profile is fresher than the lookup right after an avatar edit
+  const avatar = isOwnPost ? account.avatar || resolvedAvatar : resolvedAvatar;
 
   return (
     <article className="border-b border-gray-100 px-4 py-4">
       <div className="flex gap-3">
-        <Avatar name={post.authorName} />
+        <Avatar name={post.authorName} src={avatar} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-baseline gap-2">

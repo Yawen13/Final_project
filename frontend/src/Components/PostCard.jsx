@@ -17,17 +17,6 @@ function CommentIcon(props) {
   );
 }
 
-function RepostIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]" {...props}>
-      <path d="M17 1l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M3 11V9a4 4 0 0 1 4-4h14" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7 23l-4-4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M21 13v2a4 4 0 0 1-4 4H3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function HeartIcon({ filled, ...props }) {
   return (
     <svg
@@ -43,14 +32,6 @@ function HeartIcon({ filled, ...props }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function ViewsIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]" {...props}>
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -109,7 +90,7 @@ function Avatar({ name = '', src = '' }) {
 }
 
 export default function PostCard({ post, isOwner = false, linkToPost = false, commentsOpen = false }) {
-  const { toggleLike, toggleRepost, toggleBookmark, addComment, deletePost, editPost } = usePosts();
+  const { toggleLike, toggleBookmark, addComment, deletePost, editPost } = usePosts();
   const account = useAccount();
   const resolvedAvatar = useAvatar(post.authorHandle);
   const [showComments, setShowComments] = useState(commentsOpen);
@@ -295,26 +276,12 @@ export default function PostCard({ post, isOwner = false, linkToPost = false, co
 
             <button
               type="button"
-              onClick={() => toggleRepost(post.id)}
-              className={`flex items-center gap-1.5 hover:text-green-600 ${post.repostedByMe ? 'text-green-600' : ''}`}
-            >
-              <RepostIcon />
-              <span className="text-xs">{formatCount(post.repostCount)}</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => toggleLike(post.id)}
               className={`flex items-center gap-1.5 hover:text-pink-600 ${post.likedByMe ? 'text-pink-600' : ''}`}
             >
               <HeartIcon filled={post.likedByMe} />
               <span className="text-xs">{formatCount(post.likeCount)}</span>
             </button>
-
-            <span className="flex items-center gap-1.5 text-gray-400">
-              <ViewsIcon />
-              <span className="text-xs">{formatCount(post.viewCount)}</span>
-            </span>
 
             <button
               type="button"

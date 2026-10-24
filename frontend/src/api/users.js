@@ -26,6 +26,29 @@ export async function updateUser(username, { userId, displayName, bio, location,
   });
 }
 
+/** Follows a user on the backend; the follower count updates server-side. */
+export async function followUser(username, followerId) {
+  if (!hasBackend || !username) {
+    throw new Error('No backend configured');
+  }
+
+  return request(`/users/${encodeURIComponent(username)}/follow`, {
+    method: 'POST',
+    body: JSON.stringify({ followerId }),
+  });
+}
+
+export async function unfollowUser(username, followerId) {
+  if (!hasBackend || !username) {
+    throw new Error('No backend configured');
+  }
+
+  return request(`/users/${encodeURIComponent(username)}/follow`, {
+    method: 'DELETE',
+    body: JSON.stringify({ followerId }),
+  });
+}
+
 /** Finds people by username or display name, for starting a conversation. */
 export async function searchUsers(query, { excludeId = '' } = {}) {
   const text = query.trim();

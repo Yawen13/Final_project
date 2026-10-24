@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import PostCard from '../Components/PostCard';
 import PostSkeleton from '../Components/PostSkeleton';
-import { getUser } from '../api/users';
+import { getUser, followUser, unfollowUser } from '../api/users';
 import { listUserPosts } from '../api/posts';
 import { startConversation } from '../api/messages';
 import { loadSession } from '../api/auth';
+import { useFollowing, rememberFollowing } from '../lib/follows';
 import { initialsOf } from '../lib/names';
 
 function joinedLabel(createdAt) {
@@ -28,6 +29,10 @@ export default function UserProfile() {
   const [state, setState] = useState('loading');
   const [starting, setStarting] = useState(false);
   const [messageError, setMessageError] = useState('');
+  const [followBusy, setFollowBusy] = useState(false);
+  const [followError, setFollowError] = useState('');
+
+  const following = useFollowing(session?.id, user?.username || username);
 
   const isMe =
     Boolean(session?.username) &&
@@ -85,6 +90,51 @@ export default function UserProfile() {
       setMessageError(error.message || 'Could not start the conversation.');
     } finally {
       setStarting(false);
+    }
+  }
+
+  async function handleFollow() {
+    if (!session?.id) {
+      navigate('/');
+      return;
+    }
+    if (!user || followBusy) return;
+
+    setFollowBusy(true);
+    setFollowError('');
+
+    const name = user.username;
+    const wasFollowing = following;
+
+    try {
+      if (wasFollowing) {
+        await unfollowUser(name, session.id);
+      } else {
+        await followUser(name, session.id);
+      }
+
+      rememberFollowing(session.id, name, !wasFollowing);
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              followerCount: Math.max(0, (prev.followerCount || 0) + (wasFollowing ? -1 : 1)),
+            }
+          : prev,
+      );
+    } catch (error) {
+      const message = error.message || '';
+
+      // This device forgot the relationship (another browser followed already)
+      if (!wasFollowing && /already following/i.test(message)) {
+        rememberFollowing(session.id, name, true);
+      } else if (wasFollowing && /not following/i.test(message)) {
+        rememberFollowing(session.id, name, false);
+      } else {
+        setFollowError(message || 'Could not update the follow.');
+      }
+    } finally {
+      setFollowBusy(false);
     }
   }
 
@@ -155,20 +205,42 @@ export default function UserProfile() {
                       Your profile
                     </Link>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleMessage}
-                      disabled={starting}
-                      className="rounded-full bg-[#635BFF] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#5249ea] disabled:cursor-default disabled:opacity-60"
-                    >
-                      {starting ? 'Opening…' : 'Message'}
-                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={handleFollow}
+                        disabled={followBusy}
+                        aria-pressed={following}
+                        className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors disabled:cursor-default disabled:opacity-60 ${
+                          following
+                            ? 'border border-slate-300 bg-white text-slate-900 hover:border-slate-400 hover:bg-slate-50'
+                            : 'bg-[#635BFF] text-white hover:bg-[#5249ea]'
+                        }`}
+                      >
+                        {followBusy ? '…' : following ? 'Following' : 'Follow'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleMessage}
+                        disabled={starting}
+                        className="rounded-full border border-[#635BFF]/30 bg-white px-5 py-2 text-sm font-semibold text-[#635BFF] transition-colors hover:bg-[#635BFF]/5 disabled:cursor-default disabled:opacity-60"
+                      >
+                        {starting ? 'Opening…' : 'Message'}
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 {messageError && (
                   <p role="alert" className="mt-3 text-right text-sm font-medium text-red-600">
                     {messageError}
+                  </p>
+                )}
+
+                {followError && (
+                  <p role="alert" className="mt-3 text-right text-sm font-medium text-red-600">
+                    {followError}
                   </p>
                 )}
 
